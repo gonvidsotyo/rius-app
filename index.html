@@ -179,8 +179,9 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
       <div class="topbar-date" id="topbar-fecha"></div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
-      <button onclick="showScreen('usuarios')" style="background:none;border:none;font-size:22px;cursor:pointer;padding:2px;line-height:1;-webkit-tap-highlight-color:transparent;">👤</button>
-      <button onclick="showScreen('sync')" style="background:none;border:none;font-size:22px;cursor:pointer;padding:2px;line-height:1;-webkit-tap-highlight-color:transparent;">⚙️</button>
+      <button onclick="recargarDesdeSheets()" id="btn-refresh" title="Actualizar" style="background:none;border:none;font-size:20px;cursor:pointer;padding:2px;line-height:1;-webkit-tap-highlight-color:transparent;">🔄</button>
+      <button onclick="showScreen('usuarios')" style="background:none;border:none;font-size:20px;cursor:pointer;padding:2px;line-height:1;-webkit-tap-highlight-color:transparent;">👤</button>
+      <button onclick="showScreen('sync')" style="background:none;border:none;font-size:20px;cursor:pointer;padding:2px;line-height:1;-webkit-tap-highlight-color:transparent;">⚙️</button>
       <div id="sync-indicator" style="font-size:11px;background:#EAF3DE;color:#3B6D11;padding:4px 8px;border-radius:8px;">En línea</div>
     </div>
   </div>
@@ -553,6 +554,17 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     </div>
 
     <div class="card">
+      <div class="card-title">Notificaciones push</div>
+      <p style="font-size:12px;color:#8e8e93;line-height:1.5;margin-bottom:12px;">Usamos ntfy.sh para notificaciones instantáneas. Instalá la app <strong>ntfy</strong> en tu celular y suscribite al canal que configures acá.</p>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:4px;">Canal ntfy (único para Rius)</label>
+        <input type="text" id="ntfy-topic" placeholder="ej: rius-reparto-2024" style="width:100%;padding:9px 11px;border:1px solid #e5e5ea;border-radius:8px;font-size:14px;" oninput="guardarNtfy()" />
+      </div>
+      <div id="ntfy-estado" style="font-size:12px;margin-bottom:8px;display:none;"></div>
+      <button class="confirm-btn" onclick="probarNotificacion()" style="background:#8e8e93;margin-bottom:0;">🔔 Enviar notificación de prueba</button>
+    </div>
+
+    <div class="card">
       <div class="card-title">Conectar con Google Sheets</div>
       <p style="font-size:13px;color:#8e8e93;line-height:1.6;margin-bottom:12px;">Pegá la URL del Web App del script de Google Apps Script.</p>
       <label style="font-size:13px;color:#8e8e93;display:block;margin-bottom:4px;">URL del script</label>
@@ -713,7 +725,7 @@ function showScreen(id){
   if(id==='gastos') filtrarGastos(gastosFiltroActual||'hoy');
   if(id==='pedidos'){ renderPedidos(); const hoy=new Date().toISOString().split('T')[0]; document.getElementById('ped-fecha').value=hoy; limpiarClientePedido(); document.getElementById('ped-cant').value=1; document.getElementById('ped-cant-display').textContent='1'; }
   if(id==='usuarios'){ renderUsuarios(); document.getElementById('sesion-actual').textContent=usuarioActual?'👤 '+usuarioActual:'—'; }
-  if(id==='sync'){ cargarPrecios(); const s=localStorage.getItem('scriptUrl'); if(s){document.getElementById('script-url').value=s;guardarUrl();} }
+  if(id==='sync'){ cargarPrecios(); cargarNtfyConfig(); const s=localStorage.getItem('scriptUrl'); if(s){document.getElementById('script-url').value=s;guardarUrl();} }
 }
 
 // ---- FECHA ----
@@ -869,8 +881,14 @@ function registrarVenta(){
   }
   ventas.unshift({nombre:nombreVenta,cant,total:totalFinal,ganancia,hora:new Date(),cliente:nomCli,usuario:usuarioActual||'',dev20:dev.dev20,dev10:dev.dev10,pago:pagoActual,deudaSaldada:pagarDeuda?deudaAnt:0,nuevaDeuda:pagoActual==='nopago'?total:0});
   pagoActual='efectivo'; selPago('efectivo');
-  finalizarEntregaPedido(); // eliminar pedido si viene de una entrega
-  calcularStock(); actualizarResumen(); guardarEstado(); sincAuto('ventas'); showScreen('inicio');
+  finalizarEntregaPedido();
+  calcularStock(); actualizarResumen(); guardarEstado(); sincAuto('ventas');
+  // Notificar al otro usuario
+  const nomV = nombreVenta || '';
+  const cantV = cant || 1;
+  const cliV = nomCli || 'Sin cliente';
+  enviarNotificacion('Rius — Nueva venta', usuarioActual + ' vendió ' + cantV + 'x ' + nomV + ' a ' + cliV);
+  showScreen('inicio');
 }
 
 // ---- RESUMEN ----
@@ -1014,7 +1032,9 @@ function registrarGasto(){
   gastos.unshift({categoria:cat,descripcion:desc,monto,nota:notaAuto,bid20:_bid20,bid10:_bid10,hora:new Date(),usuario:usuarioActual||''});
   document.getElementById('gasto-monto').value=''; document.getElementById('gasto-nota').value='';
   document.getElementById('gasto-otro-desc').value=''; document.getElementById('gasto-cat').value='Nafta';
-  toggleGastoCat(); calcularStock(); guardarEstado(); sincAuto('todo'); filtrarGastos(gastosFiltroActual); actualizarResumen();
+  toggleGastoCat(); calcularStock(); guardarEstado(); sincAuto('todo');
+  enviarNotificacion('Rius — Gasto', (usuarioActual||'') + ' registró: ' + desc + ' $' + monto);
+  filtrarGastos(gastosFiltroActual); actualizarResumen();
 }
 function filtrarGastos(filtro){
   gastosFiltroActual=filtro;
@@ -1155,6 +1175,7 @@ function registrarPedido() {
   document.getElementById('ped-cant-display').textContent = '1';
   document.getElementById('ped-nota').value = '';
   guardarEstado();
+  enviarNotificacion('Rius — Nuevo pedido', usuarioActual + ' cargó un pedido para ' + (cliSelPedido ? cliSelPedido.nombre : '') + ' el ' + document.getElementById('ped-fecha').value);
   renderPedidos();
 }
 
@@ -1244,6 +1265,79 @@ function renderPedidos() {
         '<button class="pedido-btn-del" onclick="eliminarPedido(' + p.id + ')">✕</button>' +
       '</div></div>';
   }).join('');
+}
+
+// ---- NOTIFICACIONES PUSH (ntfy.sh) ----
+function getNtfyTopic() {
+  return localStorage.getItem('ntfyTopic') || '';
+}
+
+function guardarNtfy() {
+  const topic = document.getElementById('ntfy-topic').value.trim();
+  localStorage.setItem('ntfyTopic', topic);
+  const el = document.getElementById('ntfy-estado');
+  if (topic.length > 3) {
+    el.style.display = 'block';
+    el.style.color = '#3B6D11';
+    el.innerHTML = '✓ Canal guardado. Suscribite en la app <strong>ntfy</strong> al canal: <strong>' + topic + '</strong>';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+async function enviarNotificacion(titulo, mensaje) {
+  const topic = getNtfyTopic();
+  if (!topic) return;
+  try {
+    await fetch('https://ntfy.sh/' + topic, {
+      method: 'POST',
+      headers: {
+        'Title': titulo,
+        'Priority': 'default',
+        'Tags': 'droplet'
+      },
+      body: mensaje
+    });
+  } catch(e) {
+    console.log('Ntfy error:', e);
+  }
+}
+
+async function probarNotificacion() {
+  const topic = getNtfyTopic();
+  if (!topic) { alert('Primero configurá el canal ntfy'); return; }
+  await enviarNotificacion('Rius — Prueba', 'Las notificaciones funcionan correctamente 💧');
+  alert('Notificación enviada al canal: ' + topic);
+}
+
+function cargarNtfyConfig() {
+  const topic = localStorage.getItem('ntfyTopic') || '';
+  const inp = document.getElementById('ntfy-topic');
+  if (inp) { inp.value = topic; if (topic) guardarNtfy(); }
+}
+
+// ---- AUTO-RECARGA CADA 5 MINUTOS ----
+let autoReloadTimer = null;
+
+function iniciarAutoRecarga() {
+  if (autoReloadTimer) clearInterval(autoReloadTimer);
+  autoReloadTimer = setInterval(async () => {
+    const url = localStorage.getItem('scriptUrl') || '';
+    if (!url || !url.startsWith('https://script.google.com')) return;
+    const ok = await cargarDesdeSheets(url);
+    if (ok) {
+      guardarEstado();
+      calcularStock();
+      actualizarResumen();
+      // Actualizar vista actual si es clientes
+      if (document.getElementById('clientes').classList.contains('active')) {
+        renderClientes(document.querySelector('#clientes .search-bar')?.value || '');
+      }
+      if (document.getElementById('pedidos').classList.contains('active')) {
+        renderPedidos();
+      }
+    }
+  }, 5 * 60 * 1000); // cada 5 minutos
 }
 
 // ---- PERSISTENCIA ----
@@ -1422,6 +1516,7 @@ window.addEventListener('load',async()=>{
   const hayLocal=cargarEstado();
   if(!hayLocal) CLIENTES_DISPENSER.forEach(n=>{deudas[n]=25000;});
   calcularStock(); calcTotal(); actualizarDev(); actualizarResumen();
+  iniciarAutoRecarga();
   renderLoginUsuarios();
   const sesion=localStorage.getItem('riusSession');
   if(sesion&&cargarUsuarios().find(u=>u.nombre===sesion)){usuarioActual=sesion;document.getElementById('login-overlay').style.display='none';}

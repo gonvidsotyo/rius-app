@@ -1,0 +1,20 @@
+{
+  "name": "Rius",
+  "short_name": "Rius",
+  "start_url": "/rius-app/",
+  "display": "standalone",
+  "background_color": "#f2f2f7",
+  "theme_color": "#185FA5",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192x192/185FA5/ffffff?text=R",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512x512/185FA5/ffffff?text=R",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

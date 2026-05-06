@@ -1287,16 +1287,18 @@ function guardarNtfy() {
 
 async function enviarNotificacion(titulo, mensaje) {
   const topic = getNtfyTopic();
-  if (!topic) return;
+  const url = localStorage.getItem('scriptUrl') || '';
+  if (!topic || !url) return;
+  // Enviar la notificación a través del Google Apps Script (evita problemas de CORS/red)
   try {
-    await fetch('https://ntfy.sh/' + topic, {
+    fetch(url, {
       method: 'POST',
-      headers: {
-        'Title': titulo,
-        'Priority': 'default',
-        'Tags': 'droplet'
-      },
-      body: mensaje
+      body: JSON.stringify({
+        tipo: 'notificacion',
+        ntfyTopic: topic,
+        ntfyTitle: titulo,
+        ntfyMsg: mensaje
+      })
     });
   } catch(e) {
     console.log('Ntfy error:', e);

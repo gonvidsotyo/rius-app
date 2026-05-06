@@ -64,18 +64,18 @@
 .bidones-resumen.visible { display: block; }
 
 /* Cliente autocomplete */
-.cliente-wrap { position: relative; }
-.autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: #ffffff; border: 1px solid #d1d5db; border-radius: 8px; z-index: 1000; max-height: 200px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
-.autocomplete-item { padding: 9px 12px; font-size: 13px; cursor: pointer; border-bottom: 1px solid #f3f4f6; background: #ffffff; }
-.autocomplete-item:last-child { border-bottom: none; }
-.autocomplete-item:hover { background: #f0f7ff; }
-.autocomplete-nombre { color: #111827; font-weight: 500; }
-.autocomplete-sub { color: #6b7280; font-size: 11px; margin-top: 2px; }
+.cliente-wrap, .cw { position: relative; }
+.autocomplete-list, #ac-list { position: absolute; top: 100%; left: 0; right: 0; background: #ffffff; border: 1px solid #d1d5db; border-radius: 8px; z-index: 1000; max-height: 200px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+.autocomplete-item, .ac-item { padding: 9px 12px; font-size: 13px; cursor: pointer; border-bottom: 1px solid #f3f4f6; background: #ffffff; }
+.autocomplete-item:last-child, .ac-item:last-child { border-bottom: none; }
+.autocomplete-item:hover, .ac-item:hover { background: #f0f7ff; }
+.autocomplete-nombre, .ac-name { color: #111827; font-weight: 500; }
+.autocomplete-sub, .ac-sub { color: #6b7280; font-size: 11px; margin-top: 2px; }
 .cliente-sel-badge { background: #EAF3DE; border-radius: var(--border-radius-md); padding: 9px 12px; font-size: 13px; color: #3B6D11; display: none; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .cliente-sel-badge.visible { display: flex; }
 .cliente-bidones-info { font-size: 11px; color: #185FA5; margin-top: 3px; }
-.autocomplete-nuevo { border-top: 1px solid #e5e7eb !important; background: #f8fbff !important; }
-.autocomplete-nuevo:hover { background: #e8f2ff !important; }
+.autocomplete-nuevo, .ac-new { border-top: 1px solid #e5e7eb !important; background: #f8fbff !important; }
+.autocomplete-nuevo:hover, .ac-new:hover { background: #e8f2ff !important; }
 
 /* Modal nuevo cliente */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 2000; display: none; align-items: center; justify-content: center; }
@@ -314,6 +314,7 @@
     <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
       <input class="search-bar" type="text" placeholder="Buscar cliente o localidad..." oninput="renderClientes(this.value)" style="margin-bottom:0;flex:1;" />
       <button onclick="recargarDesdeSheets()" style="background:#185FA5;color:#fff;border:none;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">↻ Sheets</button>
+      <button onclick="debugBCasa()" style="background:#8e8e93;color:#fff;border:none;border-radius:10px;padding:9px 10px;font-size:12px;cursor:pointer;">🔍</button>
     </div>
     <div id="clientes-lista"></div>
   </div>
@@ -1130,6 +1131,33 @@ async function cargarDesdeSheets(url){
     }
     return true;
   }catch(e){ console.error('Error cargando Sheets:', e); return false; }
+}
+
+async function debugBCasa() {
+  const lista = document.getElementById('clientes-lista');
+  const url = localStorage.getItem('scriptUrl')||'';
+  if(!url) { lista.innerHTML='<div style="color:red;padding:10px;">No hay URL configurada en ⚙️</div>'; return; }
+  lista.innerHTML='<div style="padding:10px;color:#185FA5;">⏳ Consultando Sheets...</div>';
+  try {
+    const res = await fetch(url + '?accion=leer');
+    const json = await res.json();
+    if(!json.ok || !json.datos) {
+      lista.innerHTML='<div style="color:red;padding:10px;">Error Sheets: '+JSON.stringify(json)+'</div>';
+      return;
+    }
+    const clientes = json.datos.clientes || [];
+    const conBidones = clientes.filter(c => (Number(c.b20)||0)>0 || (Number(c.b10)||0)>0);
+    lista.innerHTML = '<div style="padding:10px;font-size:13px;">'
+      + '<b>Total clientes en Sheets: '+clientes.length+'</b><br>'
+      + '<b>Con bidones: '+conBidones.length+'</b><br><br>'
+      + 'Primeros 5 en Sheets:<br>'
+      + clientes.slice(0,5).map(c=>'• '+c.nombre+' — 20L:'+c.b20+' 10L:'+c.b10).join('<br>')
+      + '<br><br>Con bidones:<br>'
+      + (conBidones.length ? conBidones.slice(0,10).map(c=>'• '+c.nombre+' — 20L:'+c.b20+' 10L:'+c.b10).join('<br>') : 'ninguno')
+      + '</div>';
+  } catch(e) {
+    lista.innerHTML='<div style="color:red;padding:10px;">Error: '+e.message+'</div>';
+  }
 }
 
 async function recargarDesdeSheets() {

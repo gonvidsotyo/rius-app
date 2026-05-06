@@ -555,8 +555,9 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
     <div class="card">
       <div class="card-title">Dispositivo nuevo</div>
-      <p style="font-size:12px;color:#8e8e93;margin-bottom:10px;">Si cambiaste de celular o querés volver a cargar los datos desde Sheets desde cero, usá este botón.</p>
-      <button class="confirm-btn" onclick="mostrarSetup()" style="background:#8e8e93;">📲 Configurar este dispositivo</button>
+      <p style="font-size:12px;color:#8e8e93;margin-bottom:10px;">Si cambiaste de celular o querés reconfigurar este dispositivo desde cero.</p>
+      <button class="confirm-btn" onclick="resetearDispositivo()" style="background:#B42318;margin-bottom:8px;">🗑 Borrar datos locales y reconfigurar</button>
+      <button class="confirm-btn" onclick="mostrarSetup()" style="background:#8e8e93;">📲 Solo cambiar URL del script</button>
     </div>
 
     <div class="card">
@@ -622,7 +623,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div class="login-sub" style="margin-bottom:20px;">Primera vez en este dispositivo.<br>Pegá la URL del script para cargar los datos.</div>
+    <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field">
       <label>URL del script de Google</label>
       <input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" />
@@ -1093,6 +1094,17 @@ function saltarSetup() {
   mostrarLogin();
 }
 
+function resetearDispositivo() {
+  if (!confirm('¿Borrar todos los datos locales de este dispositivo? Los datos en Sheets no se modifican.')) return;
+  // Guardar solo la URL del script
+  const url = localStorage.getItem('scriptUrl') || '';
+  localStorage.clear();
+  // Mostrar setup para reconfigurar
+  document.getElementById('setup-url').value = url;
+  document.getElementById('setup-msg').style.display = 'none';
+  document.getElementById('setup-overlay').style.display = 'flex';
+}
+
 function mostrarSetup() {
   document.getElementById('setup-url').value = localStorage.getItem('scriptUrl') || '';
   document.getElementById('setup-msg').style.display = 'none';
@@ -1517,19 +1529,13 @@ window.addEventListener('load',async()=>{
   if(!hayLocal) CLIENTES_DISPENSER.forEach(n=>{deudas[n]=25000;});
   calcularStock(); calcTotal(); actualizarDev(); actualizarResumen();
   iniciarAutoRecarga();
-  // Mostrar setup si no hay datos locales guardados (dispositivo nuevo)
-  const hayDatosLocales = !!localStorage.getItem(STORAGE_KEY);
+  // Si no hay URL configurada → mostrar setup (dispositivo nuevo o sin configurar)
   const savedUrlCheck = localStorage.getItem('scriptUrl');
-  if (!hayDatosLocales && !savedUrlCheck) {
-    // Dispositivo nuevo — mostrar setup
+  if (!savedUrlCheck) {
     document.getElementById('setup-overlay').style.display = 'flex';
     document.getElementById('login-overlay').style.display = 'none';
-  } else if (!hayDatosLocales && savedUrlCheck) {
-    // Tiene URL pero sin datos — cargar desde Sheets y mostrar login
-    document.getElementById('setup-overlay').style.display = 'none';
-    mostrarLogin();
   } else {
-    // Ya tiene datos — ir directo al login
+    // Tiene URL → verificar sesión guardada
     renderLoginUsuarios();
     const sesion = localStorage.getItem('riusSession');
     if (sesion && cargarUsuarios().find(u => u.nombre === sesion)) {

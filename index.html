@@ -800,7 +800,7 @@ function guardarNuevoCliente(){
   const n=document.getElementById('m-nombre').value.trim(); if(!n){document.getElementById('m-nombre').focus();return;}
   const d=document.getElementById('m-dir').value.trim(), t=document.getElementById('m-tel').value.trim();
   CLIENTES.push({nombre:n,localidad:'',direccion:d,telefono:t}); bCasa[n]={b20:0,b10:0}; deudas[n]=0;
-  cerrarModalCliente(); selCli(n); guardarEstado(); sincAuto('clientes');
+  cerrarModalCliente(); selCli(n); guardarEstado();
 }
 
 // ---- PAGO ----
@@ -1080,6 +1080,7 @@ async function finalizarSetup() {
   const ok = await cargarDesdeSheets(url);
   if (ok) {
     guardarEstado(); calcularStock(); actualizarResumen();
+    // NO llamar sincAuto aquí — acabamos de cargar datos de Sheets, no queremos pisarlos
     msg.style.color='#3B6D11'; msg.textContent='✓ Datos cargados';
     setTimeout(() => { document.getElementById('setup-overlay').style.display='none'; mostrarLogin(); }, 1000);
   } else {
@@ -1442,6 +1443,7 @@ async function cargarDesdeSheets(url){
       Object.assign(stockInicial, d.stockInicial);
       guardarCacheStockInicial();
     }
+    bCasaModificado.clear(); // Limpiar para no pisar datos de Sheets recién cargados
     return true;
   }catch(e){ console.error('Error cargando Sheets:', e); return false; }
 }

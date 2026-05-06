@@ -15,12 +15,14 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 input, select, textarea { font-size: 16px !important; }
 button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.qty-ctrl { display: flex !important; flex-direction: row !important; align-items: center; gap: 12px; }
+.qty-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.qty-row:last-child { margin-bottom: 0; }
 .app { max-width: 480px; width: 100%; margin: 0 auto; background: #f2f2f7; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 .topbar { background: #ffffff; border-bottom: 0.5px solid #e5e5ea; padding: max(14px, env(safe-area-inset-top)) 16px 10px; display: flex; align-items: center; justify-content: space-between; }
 .topbar-title { font-size: 17px; font-weight: 500; color: #000000; }
 .topbar-date { font-size: 12px; color: #8e8e93; }
-.nav { display: flex; background: #ffffff; border-bottom: 0.5px solid #e5e5ea; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-.nav::-webkit-scrollbar { display: none; }
+.nav { display: flex; background: #ffffff; border-bottom: 0.5px solid #e5e5ea; }
 .nav-btn { flex: 1; padding: 10px 4px; font-size: 11px; color: #8e8e93; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
 .nav-btn.active { color: #185FA5; border-bottom-color: #185FA5; font-weight: 500; }
 .screen { display: none; padding: 14px 12px; }
@@ -174,18 +176,21 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
       <div class="topbar-title">Rius</div>
       <div class="topbar-date" id="topbar-fecha"></div>
     </div>
-    <div id="sync-indicator" style="font-size: 12px; background: #EAF3DE; color: #3B6D11; padding: 4px 10px; border-radius: 8px;">En línea</div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button onclick="showScreen('usuarios')" style="background:none;border:none;font-size:22px;cursor:pointer;padding:2px;line-height:1;-webkit-tap-highlight-color:transparent;">👤</button>
+      <button onclick="showScreen('sync')" style="background:none;border:none;font-size:22px;cursor:pointer;padding:2px;line-height:1;-webkit-tap-highlight-color:transparent;">⚙️</button>
+      <div id="sync-indicator" style="font-size:11px;background:#EAF3DE;color:#3B6D11;padding:4px 8px;border-radius:8px;">En línea</div>
+    </div>
   </div>
 
   <div class="nav">
     <button class="nav-btn active" onclick="showScreen('inicio')">Resumen</button>
     <button class="nav-btn" onclick="showScreen('pedidos')">Pedidos</button>
-    <button class="nav-btn" onclick="showScreen('venta')">+ Venta</button>
+    <button class="nav-btn" onclick="showScreen('venta')">Venta</button>
     <button class="nav-btn" onclick="showScreen('clientes')">Clientes</button>
     <button class="nav-btn" onclick="showScreen('stock')">Stock</button>
     <button class="nav-btn" onclick="showScreen('gastos')">Gastos</button>
-    <button class="nav-btn" onclick="showScreen('usuarios')">👤</button>
-    <button class="nav-btn" onclick="showScreen('sync')" style="font-size:15px;">⚙️</button>
+
   </div>
 
   <!-- RESUMEN -->
@@ -696,7 +701,7 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  ['inicio','pedidos','venta','clientes','stock','gastos','usuarios','sync'].forEach((s,i)=>{
+  ['inicio','pedidos','venta','clientes','stock','gastos'].forEach((s,i)=>{
     if(s===id) document.querySelectorAll('.nav-btn')[i].classList.add('active');
   });
   if(id==='inicio') actualizarResumen();

@@ -554,14 +554,9 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     </div>
 
     <div class="card">
-      <div class="card-title">Notificaciones push</div>
-      <p style="font-size:12px;color:#8e8e93;line-height:1.5;margin-bottom:12px;">Usamos ntfy.sh para notificaciones instantáneas. Instalá la app <strong>ntfy</strong> en tu celular y suscribite al canal que configures acá.</p>
-      <div style="margin-bottom:10px;">
-        <label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:4px;">Canal ntfy (único para Rius)</label>
-        <input type="text" id="ntfy-topic" placeholder="ej: rius-reparto-2024" style="width:100%;padding:9px 11px;border:1px solid #e5e5ea;border-radius:8px;font-size:14px;" oninput="guardarNtfy()" />
-      </div>
-      <div id="ntfy-estado" style="font-size:12px;margin-bottom:8px;display:none;"></div>
-      <button class="confirm-btn" onclick="probarNotificacion()" style="background:#8e8e93;margin-bottom:0;">🔔 Enviar notificación de prueba</button>
+      <div class="card-title">Dispositivo nuevo</div>
+      <p style="font-size:12px;color:#8e8e93;margin-bottom:10px;">Si cambiaste de celular o querés volver a cargar los datos desde Sheets desde cero, usá este botón.</p>
+      <button class="confirm-btn" onclick="mostrarSetup()" style="background:#8e8e93;">📲 Configurar este dispositivo</button>
     </div>
 
     <div class="card">
@@ -619,6 +614,23 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     <div class="modal-actions">
       <button class="modal-btn-cancel" onclick="cerrarModalCliente()">Cancelar</button>
       <button class="modal-btn-save" onclick="guardarNuevoCliente()">Guardar y seleccionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP PRIMERA VEZ -->
+<div class="login-overlay" id="setup-overlay" style="display:none;">
+  <div class="login-box">
+    <div class="login-logo">💧 Rius</div>
+    <div class="login-sub" style="margin-bottom:20px;">Primera vez en este dispositivo.<br>Pegá la URL del script para cargar los datos.</div>
+    <div class="login-field">
+      <label>URL del script de Google</label>
+      <input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" />
+    </div>
+    <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
+    <button class="login-btn" onclick="finalizarSetup()">Cargar datos y continuar</button>
+    <div style="text-align:center;margin-top:12px;">
+      <button onclick="saltarSetup()" style="background:none;border:none;color:#8e8e93;font-size:13px;cursor:pointer;">Continuar sin sincronizar →</button>
     </div>
   </div>
 </div>
@@ -725,7 +737,7 @@ function showScreen(id){
   if(id==='gastos') filtrarGastos(gastosFiltroActual||'hoy');
   if(id==='pedidos'){ renderPedidos(); const hoy=new Date().toISOString().split('T')[0]; document.getElementById('ped-fecha').value=hoy; limpiarClientePedido(); document.getElementById('ped-cant').value=1; document.getElementById('ped-cant-display').textContent='1'; }
   if(id==='usuarios'){ renderUsuarios(); document.getElementById('sesion-actual').textContent=usuarioActual?'👤 '+usuarioActual:'—'; }
-  if(id==='sync'){ cargarPrecios(); cargarNtfyConfig(); const s=localStorage.getItem('scriptUrl'); if(s){document.getElementById('script-url').value=s;guardarUrl();} }
+  if(id==='sync'){ cargarPrecios(); const s=localStorage.getItem('scriptUrl'); if(s){document.getElementById('script-url').value=s;guardarUrl();} }
 }
 
 // ---- FECHA ----
@@ -883,11 +895,6 @@ function registrarVenta(){
   pagoActual='efectivo'; selPago('efectivo');
   finalizarEntregaPedido();
   calcularStock(); actualizarResumen(); guardarEstado(); sincAuto('ventas');
-  // Notificar al otro usuario
-  const nomV = nombreVenta || '';
-  const cantV = cant || 1;
-  const cliV = nomCli || 'Sin cliente';
-  enviarNotificacion('Rius — Nueva venta', usuarioActual + ' vendió ' + cantV + 'x ' + nomV + ' a ' + cliV);
   showScreen('inicio');
 }
 
@@ -1033,7 +1040,6 @@ function registrarGasto(){
   document.getElementById('gasto-monto').value=''; document.getElementById('gasto-nota').value='';
   document.getElementById('gasto-otro-desc').value=''; document.getElementById('gasto-cat').value='Nafta';
   toggleGastoCat(); calcularStock(); guardarEstado(); sincAuto('todo');
-  enviarNotificacion('Rius — Gasto', (usuarioActual||'') + ' registró: ' + desc + ' $' + monto);
   filtrarGastos(gastosFiltroActual); actualizarResumen();
 }
 function filtrarGastos(filtro){
@@ -1060,6 +1066,46 @@ function filtrarGastos(filtro){
 
 // ---- USUARIOS ----
 let usuarioActual=null, usuarioPendiente=null, usuarioAEliminar=null;
+// ---- SETUP PRIMERA VEZ ----
+async function finalizarSetup() {
+  const url = document.getElementById('setup-url').value.trim();
+  const msg = document.getElementById('setup-msg');
+  if (!url || !url.startsWith('https://script.google.com')) {
+    msg.style.display='block'; msg.style.color='#B42318';
+    msg.textContent='⚠ URL inválida. Tiene que empezar con https://script.google.com';
+    return;
+  }
+  msg.style.display='block'; msg.style.color='#185FA5'; msg.textContent='⏳ Cargando datos...';
+  localStorage.setItem('scriptUrl', url);
+  const ok = await cargarDesdeSheets(url);
+  if (ok) {
+    guardarEstado(); calcularStock(); actualizarResumen();
+    msg.style.color='#3B6D11'; msg.textContent='✓ Datos cargados';
+    setTimeout(() => { document.getElementById('setup-overlay').style.display='none'; mostrarLogin(); }, 1000);
+  } else {
+    msg.style.color='#B42318'; msg.textContent='✗ No se pudo conectar. Verificá la URL.';
+  }
+}
+
+function saltarSetup() {
+  document.getElementById('setup-overlay').style.display='none';
+  mostrarLogin();
+}
+
+function mostrarSetup() {
+  document.getElementById('setup-url').value = localStorage.getItem('scriptUrl') || '';
+  document.getElementById('setup-msg').style.display = 'none';
+  document.getElementById('setup-overlay').style.display = 'flex';
+}
+
+function mostrarLogin() {
+  renderLoginUsuarios();
+  document.getElementById('login-user-sel').style.display='flex';
+  document.getElementById('login-pass-section').style.display='none';
+  document.getElementById('login-error').style.display='none';
+  document.getElementById('login-overlay').style.display='flex';
+}
+
 function cargarUsuarios(){ try{const r=localStorage.getItem('riusUsers');if(r)return JSON.parse(r);}catch(e){} return [{nombre:'Admin',pass:'admin1234'}]; }
 function guardarUsuarios(u){ localStorage.setItem('riusUsers',JSON.stringify(u)); }
 function renderLoginUsuarios(){
@@ -1175,7 +1221,6 @@ function registrarPedido() {
   document.getElementById('ped-cant-display').textContent = '1';
   document.getElementById('ped-nota').value = '';
   guardarEstado();
-  enviarNotificacion('Rius — Nuevo pedido', usuarioActual + ' cargó un pedido para ' + (cliSelPedido ? cliSelPedido.nombre : '') + ' el ' + document.getElementById('ped-fecha').value);
   renderPedidos();
 }
 
@@ -1267,57 +1312,6 @@ function renderPedidos() {
   }).join('');
 }
 
-// ---- NOTIFICACIONES PUSH (ntfy.sh) ----
-function getNtfyTopic() {
-  return localStorage.getItem('ntfyTopic') || '';
-}
-
-function guardarNtfy() {
-  const topic = document.getElementById('ntfy-topic').value.trim();
-  localStorage.setItem('ntfyTopic', topic);
-  const el = document.getElementById('ntfy-estado');
-  if (topic.length > 3) {
-    el.style.display = 'block';
-    el.style.color = '#3B6D11';
-    el.innerHTML = '✓ Canal guardado. Suscribite en la app <strong>ntfy</strong> al canal: <strong>' + topic + '</strong>';
-  } else {
-    el.style.display = 'none';
-  }
-}
-
-async function enviarNotificacion(titulo, mensaje) {
-  const topic = getNtfyTopic();
-  const url = localStorage.getItem('scriptUrl') || '';
-  if (!topic || !url) return;
-  // Enviar la notificación a través del Google Apps Script (evita problemas de CORS/red)
-  try {
-    fetch(url, {
-      method: 'POST',
-      body: JSON.stringify({
-        tipo: 'notificacion',
-        ntfyTopic: topic,
-        ntfyTitle: titulo,
-        ntfyMsg: mensaje
-      })
-    });
-  } catch(e) {
-    console.log('Ntfy error:', e);
-  }
-}
-
-async function probarNotificacion() {
-  const topic = getNtfyTopic();
-  if (!topic) { alert('Primero configurá el canal ntfy'); return; }
-  await enviarNotificacion('Rius — Prueba', 'Las notificaciones funcionan correctamente 💧');
-  alert('Notificación enviada al canal: ' + topic);
-}
-
-function cargarNtfyConfig() {
-  const topic = localStorage.getItem('ntfyTopic') || '';
-  const inp = document.getElementById('ntfy-topic');
-  if (inp) { inp.value = topic; if (topic) guardarNtfy(); }
-}
-
 // ---- AUTO-RECARGA CADA 5 MINUTOS ----
 let autoReloadTimer = null;
 
@@ -1380,9 +1374,9 @@ function sincAuto(){
   syncTimer=setTimeout(async()=>{
     const url=localStorage.getItem('scriptUrl')||'';
     if(!url||!url.startsWith('https://script.google.com')){if(ind){ind.style.background='#EAF3DE';ind.style.color='#3B6D11';ind.textContent='En línea';}return;}
-    const cData=CLIENTES
-      .filter(c=>bCasaModificado.has(c.nombre))
-      .map(c=>({...c,b20:bCasa[c.nombre]?.b20||0,b10:bCasa[c.nombre]?.b10||0}));
+    const cData=bCasaModificado.size>0
+      ? CLIENTES.filter(c=>bCasaModificado.has(c.nombre)).map(c=>({...c,b20:bCasa[c.nombre]?.b20||0,b10:bCasa[c.nombre]?.b10||0}))
+      : [];
     const payload={tipo:'todo',ventas,stock,clientes:cData,deudas,gastos};
     try{
       const res=await fetch(url,{method:'POST',body:JSON.stringify(payload)});
@@ -1405,7 +1399,9 @@ async function sincronizar(tipo){
   const estado=document.getElementById('sync-estado');
   if(!url||!url.startsWith('https://script.google.com')){estado.style.display='block';estado.style.color='#B42318';estado.textContent='⚠ Pegá la URL del script';return;}
   estado.style.display='block';estado.style.color='#185FA5';estado.textContent='⏳ Sincronizando...';
-  const cData=CLIENTES.map(c=>({...c,b20:bCasa[c.nombre]?.b20||0,b10:bCasa[c.nombre]?.b10||0}));
+  const cData=bCasaModificado.size>0
+    ? CLIENTES.filter(c=>bCasaModificado.has(c.nombre)).map(c=>({...c,b20:bCasa[c.nombre]?.b20||0,b10:bCasa[c.nombre]?.b10||0}))
+    : [];
   const payload={tipo:'todo',ventas,stock,clientes:cData,deudas,gastos};
   try{const res=await fetch(url,{method:'POST',body:JSON.stringify(payload)});const json=await res.json();if(json.ok){estado.style.color='#3B6D11';estado.textContent='✓ Sincronizado';}else throw new Error(json.error);}
   catch(err){estado.style.color='#B42318';estado.textContent='✗ Error: '+err.message;}
@@ -1519,10 +1515,28 @@ window.addEventListener('load',async()=>{
   if(!hayLocal) CLIENTES_DISPENSER.forEach(n=>{deudas[n]=25000;});
   calcularStock(); calcTotal(); actualizarDev(); actualizarResumen();
   iniciarAutoRecarga();
-  renderLoginUsuarios();
-  const sesion=localStorage.getItem('riusSession');
-  if(sesion&&cargarUsuarios().find(u=>u.nombre===sesion)){usuarioActual=sesion;document.getElementById('login-overlay').style.display='none';}
-  else document.getElementById('login-overlay').style.display='flex';
+  // Mostrar setup si no hay datos locales guardados (dispositivo nuevo)
+  const hayDatosLocales = !!localStorage.getItem(STORAGE_KEY);
+  const savedUrlCheck = localStorage.getItem('scriptUrl');
+  if (!hayDatosLocales && !savedUrlCheck) {
+    // Dispositivo nuevo — mostrar setup
+    document.getElementById('setup-overlay').style.display = 'flex';
+    document.getElementById('login-overlay').style.display = 'none';
+  } else if (!hayDatosLocales && savedUrlCheck) {
+    // Tiene URL pero sin datos — cargar desde Sheets y mostrar login
+    document.getElementById('setup-overlay').style.display = 'none';
+    mostrarLogin();
+  } else {
+    // Ya tiene datos — ir directo al login
+    renderLoginUsuarios();
+    const sesion = localStorage.getItem('riusSession');
+    if (sesion && cargarUsuarios().find(u => u.nombre === sesion)) {
+      usuarioActual = sesion;
+      document.getElementById('login-overlay').style.display = 'none';
+    } else {
+      mostrarLogin();
+    }
+  }
   if(savedUrl&&savedUrl.startsWith('https://script.google.com')){
     const ind=document.getElementById('sync-indicator');
     if(ind){ind.style.background='#FFF3CD';ind.style.color='#854F0B';ind.textContent='⏳ Cargando...';}

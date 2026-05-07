@@ -1631,6 +1631,7 @@ async function recargarDesdeSheets() {
       const searchInput = document.querySelector('#clientes .search-bar');
       const q = searchInput ? searchInput.value : '';
       renderClientes(q);
+      renderPedidos();
       if(btn){ btn.textContent='✓ OK'; setTimeout(()=>{ btn.textContent='↻ Sheets'; btn.disabled=false; }, 2000); }
       if(ind){ ind.style.background='#E1F5EE'; ind.style.color='#0F6E56'; ind.textContent='✓ Datos OK'; }
       setTimeout(()=>{ if(ind){ ind.style.background='#EAF3DE'; ind.style.color='#3B6D11'; ind.textContent='En línea'; }}, 3000);
@@ -1675,7 +1676,7 @@ window.addEventListener('load',async()=>{
     const ok=await cargarDesdeSheets(savedUrl);
     if(ok){
       guardarCacheStockInicial(); // Sheets tiene prioridad sobre cache local
-      guardarEstado();calcularStock();calcTotal();actualizarDev();actualizarResumen();
+      guardarEstado();calcularStock();calcTotal();actualizarDev();actualizarResumen();renderPedidos();
       if(ind){ind.style.background='#E1F5EE';ind.style.color='#0F6E56';ind.textContent='✓ Datos OK';}
       setTimeout(()=>{if(ind){ind.style.background='#EAF3DE';ind.style.color='#3B6D11';ind.textContent='En línea';}},3000);
     }

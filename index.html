@@ -1326,6 +1326,7 @@ function registrarPedido() {
   document.getElementById('ped-cant-display').textContent = '1';
   document.getElementById('ped-nota').value = '';
   guardarEstado();
+  sincAuto();
   renderPedidos();
 }
 
@@ -1372,7 +1373,12 @@ function finalizarEntregaPedido() {
 
 function eliminarPedido(id) {
   pedidos = pedidos.filter(p => p.id !== id);
-  guardarEstado(); renderPedidos();
+  guardarEstado(); sincAuto(); renderPedidos();
+}
+
+function abrirMaps(dirEncoded) {
+  const dir = decodeURIComponent(dirEncoded);
+  window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(dir), '_blank');
 }
 
 function abrirWhatsappPedido(id) {
@@ -1424,6 +1430,11 @@ function renderPedidos() {
     const cardCls = esVenc ? 'pedido-card vencido' : esHoy ? 'pedido-card hoy' : 'pedido-card';
     const hasTel = p.telefono && p.telefono.replace(/[^0-9]/g,'').length > 6;
     const wspBtn = hasTel ? '<button class="pedido-btn-wsp" onclick="abrirWhatsappPedido(' + p.id + ')">💬 WSP</button>' : '';
+    const cli = CLIENTES.find(c => c.nombre === p.cliente);
+    const dir = cli ? (cli.direccion || '') : '';
+    const loc = cli ? (cli.localidad || '') : '';
+    const dirCompleta = [dir, loc].filter(Boolean).join(', ');
+    const mapsBtn = dirCompleta ? '<button class="pedido-btn-wsp" style="background:#EA4335;" onclick="abrirMaps(\'' + encodeURIComponent(dirCompleta) + '\')">📍 Maps</button>' : '';
     return '<div class="' + cardCls + '">' +
       '<div class="pedido-nombre">' + p.cliente + '</div>' +
       '<div class="pedido-detalle">' + p.prodNombre + ' x' + p.cant + (p.nota ? ' · ' + p.nota : '') + '</div>' +
@@ -1431,6 +1442,7 @@ function renderPedidos() {
       '<div class="pedido-actions">' +
         '<button class="pedido-btn-entregar" onclick="entregarPedido(' + p.id + ')">✓ Entregar</button>' +
         wspBtn +
+        mapsBtn +
         '<button class="pedido-btn-del" onclick="eliminarPedido(' + p.id + ')">✕</button>' +
       '</div></div>';
   }).join('');
@@ -1501,7 +1513,7 @@ function sincAuto(){
     const cData=bCasaModificado.size>0
       ? CLIENTES.filter(c=>bCasaModificado.has(c.nombre)).map(c=>({...c,b20:bCasa[c.nombre]?.b20||0,b10:bCasa[c.nombre]?.b10||0}))
       : [];
-    const payload={tipo:'todo',ventas,stock,clientes:cData,deudas,gastos};
+    const payload={tipo:'todo',ventas,stock,clientes:cData,deudas,gastos,pedidos};
     try{
       const res=await fetch(url,{method:'POST',body:JSON.stringify(payload)});
       const json=await res.json();
@@ -1526,7 +1538,7 @@ async function sincronizar(tipo){
   const cData=bCasaModificado.size>0
     ? CLIENTES.filter(c=>bCasaModificado.has(c.nombre)).map(c=>({...c,b20:bCasa[c.nombre]?.b20||0,b10:bCasa[c.nombre]?.b10||0}))
     : [];
-  const payload={tipo:'todo',ventas,stock,clientes:cData,deudas,gastos};
+  const payload={tipo:'todo',ventas,stock,clientes:cData,deudas,gastos,pedidos};
   try{const res=await fetch(url,{method:'POST',body:JSON.stringify(payload)});const json=await res.json();if(json.ok){estado.style.color='#3B6D11';estado.textContent='✓ Sincronizado';}else throw new Error(json.error);}
   catch(err){estado.style.color='#B42318';estado.textContent='✗ Error: '+err.message;}
 }
@@ -1535,6 +1547,7 @@ async function cargarDesdeSheets(url){
     const res=await fetch(url+'?accion=leer'); const json=await res.json();
     if(!json.ok||!json.datos) return false; const d=json.datos;
     if(d.ventas&&d.ventas.length) ventas=d.ventas.map(v=>({...v,hora:v.hora?new Date(v.hora):new Date(),dev20:v.dev20||0,dev10:v.dev10||0,nuevaDeuda:0,deudaSaldada:0}));
+    if(d.pedidos&&d.pedidos.length) pedidos=d.pedidos;
     if(d.gastos&&d.gastos.length) gastos=d.gastos.map(g=>{
       const gasto = {...g, hora:new Date(g.hora)};
       if(gasto.bid20===undefined || gasto.bid10===undefined){

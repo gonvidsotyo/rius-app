@@ -1645,27 +1645,20 @@ window.addEventListener('load',async()=>{
 
 // ---- RESET TOTAL ----
 async function resetearTodo() {
-  if (!confirm('¿Borrar TODAS las ventas, gastos y pedidos?\n\nEsto no se puede deshacer. Los clientes y el stock inicial se mantienen.')) return;
+  if (!confirm('¿Borrar TODAS las ventas, gastos y pedidos?\n\nEsto no se puede deshacer.')) return;
 
-  // Limpiar datos locales
-  ventas = [];
-  gastos = [];
-  pedidos = [];
-  bCasaModificado.clear();
-  // Mantener bCasa como está (datos de Sheets)
-  // Mantener deudas con $25.000 para dispensers
-  Object.keys(deudas).forEach(k => { deudas[k] = 0; });
-  CLIENTES_DISPENSER.forEach(n => { if(deudas[n] !== undefined) deudas[n] = 25000; });
-
-  guardarEstado();
-  calcularStock();
-  actualizarResumen();
-
-  // Limpiar Sheets y recargar estado original de clientes
   const url = localStorage.getItem('scriptUrl') || '';
+  const ind = document.getElementById('sync-indicator');
+  if(ind){ ind.style.background='#FFF3CD'; ind.style.color='#854F0B'; ind.textContent='⏳ Reseteando...'; }
+
+  // 1. Limpiar Sheets primero (ventas, gastos vacíos; no tocar clientes ni stock inicial)
   if (url && url.startsWith('https://script.google.com')) {
     try {
-      // 1. Borrar ventas/gastos en Sheets
+      // Resetear deudas a $25.000 para dispensers
+      const deudasReset = {};
+      CLIENTES.forEach(c => { deudasReset[c.nombre] = 0; });
+      CLIENTES_DISPENSER.forEach(n => { deudasReset[n] = 25000; });
+
       await fetch(url, {
         method: 'POST',
         body: JSON.stringify({
@@ -1673,29 +1666,40 @@ async function resetearTodo() {
           ventas: [],
           gastos: [],
           stock: stock,
-          clientes: [], // vacío = no tocar clientes en Sheets
-          deudas: Object.fromEntries(Object.entries(deudas))
+          clientes: [], // no tocar bidones de clientes
+          deudas: deudasReset
         })
       });
-      // 2. Recargar datos de Sheets para restaurar bCasa al estado original
-      const ind = document.getElementById('sync-indicator');
-      if(ind){ ind.style.background='#FFF3CD'; ind.style.color='#854F0B'; ind.textContent='⏳ Restaurando...'; }
-      const ok = await cargarDesdeSheets(url);
-      if (ok) {
-        guardarEstado();
-        calcularStock();
-        actualizarResumen();
-        if(ind){ ind.style.background='#EAF3DE'; ind.style.color='#3B6D11'; ind.textContent='En línea'; }
-        alert('✓ Registros borrados. Los bidones de clientes volvieron al estado de Sheets.');
-      }
-    } catch(e) {
-      alert('Datos locales borrados. Error: ' + e.message);
-    }
-  } else {
-    alert('✓ Registros borrados localmente. Recargá desde Sheets para restaurar los bidones de clientes.');
+    } catch(e) { console.log('Reset Sheets error:', e); }
   }
 
+  // 2. Limpiar estado local
+  ventas = [];
+  gastos = [];
+  pedidos = [];
+  bCasaModificado.clear();
+  Object.keys(deudas).forEach(k => { deudas[k] = 0; });
+  CLIENTES_DISPENSER.forEach(n => { if(deudas[n] !== undefined) deudas[n] = 25000; });
+
+  // 3. Recargar desde Sheets para restaurar stockInicial y bCasa originales
+  if (url && url.startsWith('https://script.google.com')) {
+    const ok = await cargarDesdeSheets(url);
+    if (ok) {
+      // Asegurar que ventas y gastos queden vacíos (no importar los que borramos)
+      ventas = [];
+      gastos = [];
+      pedidos = [];
+    }
+  }
+
+  // 4. Actualizar UI
+  guardarEstado();
+  calcularStock();
+  actualizarResumen();
+
+  if(ind){ ind.style.background='#EAF3DE'; ind.style.color='#3B6D11'; ind.textContent='En línea'; }
   showScreen('inicio');
+  alert('✓ Listo. Ventas, gastos y pedidos borrados. Bidones de clientes restaurados desde Sheets.');
 }
 </script>
 </body>

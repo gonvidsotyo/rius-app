@@ -491,6 +491,10 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
   <!-- PEDIDOS -->
   <div id="pedidos" class="screen">
+    <div class="card" id="pedidos-resumen-card" style="display:none;">
+      <div class="card-title">Pendiente de entregar</div>
+      <div id="pedidos-resumen-contenido"></div>
+    </div>
     <div class="card">
       <div class="card-title">Nuevo pedido</div>
       <div class="venta-form">
@@ -1389,6 +1393,25 @@ function abrirWhatsapp(tel, cliente, prod, cant, fecha) {
 function renderPedidos() {
   const lista = document.getElementById('pedidos-lista');
   if(!lista) return;
+
+  // Calcular resumen de productos pendientes
+  const resumenCard = document.getElementById('pedidos-resumen-card');
+  const resumenContenido = document.getElementById('pedidos-resumen-contenido');
+  if (resumenCard && resumenContenido && pedidos.length > 0) {
+    const totales = {};
+    pedidos.forEach(p => {
+      const key = p.prodNombre;
+      totales[key] = (totales[key] || 0) + p.cant;
+    });
+    resumenContenido.innerHTML = Object.entries(totales)
+      .map(([prod, cant]) => {
+        const icon = prod.includes('20L') ? '🛢️' : prod.includes('10L') ? '💧' : '🧊';
+        return '<div class="dep-row"><span style="color:#8e8e93;">' + icon + ' ' + prod + '</span><span style="font-weight:700;font-size:16px;color:#185FA5;">' + cant + '</span></div>';
+      }).join('');
+    resumenCard.style.display = 'block';
+  } else if (resumenCard) {
+    resumenCard.style.display = 'none';
+  }
   if(!pedidos.length){ lista.innerHTML='<div style="font-size:13px;color:#aeaeb2;padding:8px 0;">No hay pedidos pendientes.</div>'; return; }
   const hoy = new Date().toISOString().split('T')[0];
   const sorted = [...pedidos].sort((a,b) => a.fecha.localeCompare(b.fecha));

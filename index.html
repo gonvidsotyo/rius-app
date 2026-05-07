@@ -1268,7 +1268,8 @@ function buscarClientePedido() {
   const m = [...starts, ...contains].slice(0, 8);
   list.innerHTML = m.map(c => {
     const e = c.nombre.replace(/'/g, "\'");
-    return '<div class="ac-item" onmousedown="selCliPedido(\'' + e + '\')"><div class="ac-name">' + c.nombre + '</div><div class="ac-sub">' + [c.localidad,c.direccion].filter(Boolean).join(' · ') + '</div></div>';
+    const db2 = tieneDispenser(c.nombre) ? ' · 🧊 dispenser' : CLIENTES_DISPENSER_RESERVADO.has(c.nombre) ? ' · ⏳ disp. reservado' : '';
+    return '<div class="ac-item" onmousedown="selCliPedido(\'' + e + '\')"><div class="ac-name">' + c.nombre + '</div><div class="ac-sub">' + [c.localidad,c.direccion].filter(Boolean).join(' · ') + db2 + '</div></div>';
   }).join('');
   list.style.display = m.length ? 'block' : 'none';
 }
@@ -1279,7 +1280,10 @@ function selCliPedido(nombre) {
   document.getElementById('ped-ac-list').style.display = 'none';
   document.getElementById('ped-cli-badge').classList.add('on');
   document.getElementById('ped-badge-nombre').textContent = cliSelPedido.nombre;
-  document.getElementById('ped-badge-dir').textContent = [cliSelPedido.localidad, cliSelPedido.direccion].filter(Boolean).join(' · ');
+  const esDisp = tieneDispenser(nombre);
+  const esRes = CLIENTES_DISPENSER_RESERVADO.has(nombre);
+  const dispInfo = esDisp ? ' · 🧊 Tiene dispenser' : esRes ? ' · ⏳ Dispenser reservado' : '';
+  document.getElementById('ped-badge-dir').textContent = [cliSelPedido.localidad, cliSelPedido.direccion].filter(Boolean).join(' · ') + dispInfo;
 }
 
 function limpiarClientePedido() {

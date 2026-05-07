@@ -133,6 +133,38 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .pedido-btn-wsp { flex: 1; background: #25D366; color: #fff; border: none; border-radius: 8px; padding: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .pedido-btn-del { flex: 1; background: none; border: 1px solid #e5e5ea; border-radius: 8px; padding: 8px; font-size: 13px; color: #B42318; cursor: pointer; }
 
+/* Install prompt */
+.install-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 9998; display: none; align-items: flex-end; justify-content: center; }
+.install-overlay.visible { display: flex; }
+.install-box { background: #fff; border-radius: 20px 20px 0 0; padding: 28px 24px 36px; width: 100%; max-width: 480px; }
+.install-logo { width: 72px; height: 72px; border-radius: 18px; margin: 0 auto 16px; display: block; }
+.install-title { font-size: 20px; font-weight: 700; color: #000; text-align: center; margin-bottom: 6px; }
+.install-sub { font-size: 14px; color: #8e8e93; text-align: center; margin-bottom: 24px; line-height: 1.5; }
+.install-btn { width: 100%; background: #185FA5; color: #fff; border: none; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; margin-bottom: 10px; }
+.install-skip { width: 100%; background: none; border: none; color: #8e8e93; font-size: 14px; cursor: pointer; padding: 8px; }
+
+/* Cliente card mejorado */
+.cli-card { background: #fff; border-radius: 14px; padding: 0; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow: hidden; }
+.cli-card-header { padding: 14px 14px 10px; }
+.cli-card-nombre { font-size: 16px; font-weight: 700; color: #000; margin-bottom: 4px; }
+.cli-card-dir { font-size: 13px; color: #8e8e93; margin-bottom: 2px; }
+.cli-card-tel { font-size: 13px; color: #8e8e93; }
+.cli-card-bids { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.cli-card-deuda { font-size: 12px; color: #B42318; font-weight: 600; margin-top: 6px; }
+.cli-card-actions { display: flex; border-top: 1px solid #f2f2f7; }
+.cli-card-btn { flex: 1; padding: 11px 4px; font-size: 12px; font-weight: 500; border: none; background: none; cursor: pointer; color: #8e8e93; border-right: 1px solid #f2f2f7; }
+.cli-card-btn:last-child { border-right: none; }
+.cli-card-btn.peligro { color: #B42318; }
+.cli-card-btn.primario { color: #185FA5; }
+
+/* Modal cliente */
+.modal-cli { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 3000; display: none; align-items: flex-end; justify-content: center; }
+.modal-cli.visible { display: flex; }
+.modal-cli-box { background: #fff; border-radius: 20px 20px 0 0; width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto; padding: 20px 16px 32px; }
+.modal-cli-title { font-size: 18px; font-weight: 700; color: #000; margin-bottom: 4px; }
+.modal-cli-sub { font-size: 13px; color: #8e8e93; margin-bottom: 16px; }
+.hist-empty { font-size: 13px; color: #aeaeb2; padding: 12px 0; }
+
 /* Login */
 .login-overlay { position: fixed; inset: 0; background: #f2f2f7; z-index: 9999; display: flex; align-items: center; justify-content: center; }
 .login-box { background: #fff; border-radius: 20px; padding: 32px 24px; width: 320px; max-width: 92vw; box-shadow: 0 8px 32px rgba(0,0,0,.12); }
@@ -553,6 +585,12 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
       </div>
     </div>
 
+    <div class="card" style="border: 1.5px solid #FDECEA;">
+      <div class="card-title" style="color:#B42318;">⚠ Zona de peligro</div>
+      <p style="font-size:12px;color:#8e8e93;margin-bottom:10px;">Borra todas las ventas, gastos y pedidos registrados en la app y en Sheets, volviendo al estado inicial. <strong>No se puede deshacer.</strong></p>
+      <button class="confirm-btn" onclick="resetearTodo()" style="background:#B42318;margin-bottom:0;">🗑 Borrar todos los registros</button>
+    </div>
+
     <div class="card">
       <div class="card-title">Dispositivo nuevo</div>
       <p style="font-size:12px;color:#8e8e93;margin-bottom:10px;">Si cambiaste de celular o querés reconfigurar este dispositivo desde cero.</p>
@@ -616,6 +654,52 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
       <button class="modal-btn-cancel" onclick="cerrarModalCliente()">Cancelar</button>
       <button class="modal-btn-save" onclick="guardarNuevoCliente()">Guardar y seleccionar</button>
     </div>
+  </div>
+</div>
+
+<!-- INSTALL PROMPT -->
+<div class="install-overlay" id="install-overlay">
+  <div class="install-box">
+    <img src="icon.png" class="install-logo" alt="Rius" />
+    <div class="install-title">Instalá Rius</div>
+    <div class="install-sub">Instalá la app en tu celular para acceder más rápido y usarla sin barras del navegador.</div>
+    <button class="install-btn" id="install-btn" onclick="instalarApp()">📲 Instalar app</button>
+    <button class="install-skip" onclick="saltarInstalacion()">Continuar sin instalar</button>
+  </div>
+</div>
+
+<!-- MODAL DETALLE CLIENTE -->
+<div class="modal-cli" id="modal-cliente">
+  <div class="modal-cli-box">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+      <div>
+        <div class="modal-cli-title" id="modal-cli-nombre"></div>
+        <div class="modal-cli-sub" id="modal-cli-info"></div>
+      </div>
+      <button onclick="cerrarModalCliente2()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#8e8e93;padding:0;">✕</button>
+    </div>
+    <div id="modal-cli-bids" style="margin-bottom:14px;"></div>
+
+    <!-- Acciones -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button onclick="editarClienteModal()" class="confirm-btn" style="flex:1;background:#185FA5;margin-top:0;padding:11px;font-size:14px;">✏️ Editar</button>
+      <button onclick="eliminarClienteModal()" class="confirm-btn" style="flex:1;background:#B42318;margin-top:0;padding:11px;font-size:14px;">🗑 Eliminar</button>
+    </div>
+
+    <!-- Editar form (oculto por defecto) -->
+    <div id="modal-cli-edit" style="display:none;background:#f2f2f7;border-radius:12px;padding:14px;margin-bottom:14px;">
+      <div class="card-title" style="margin-bottom:10px;">Editar datos</div>
+      <div class="venta-form">
+        <div><label>Nombre</label><input type="text" id="edit-cli-nombre" /></div>
+        <div><label>Dirección</label><input type="text" id="edit-cli-dir" /></div>
+        <div><label>Teléfono</label><input type="text" id="edit-cli-tel" /></div>
+        <button class="confirm-btn" onclick="guardarEdicionCliente()" style="margin-top:0;">Guardar cambios</button>
+      </div>
+    </div>
+
+    <!-- Historial -->
+    <div class="card-title" style="margin-bottom:8px;">Historial de ventas</div>
+    <div id="modal-cli-hist"></div>
   </div>
 </div>
 
@@ -1549,10 +1633,70 @@ window.addEventListener('load',async()=>{
     const ind=document.getElementById('sync-indicator');
     if(ind){ind.style.background='#FFF3CD';ind.style.color='#854F0B';ind.textContent='⏳ Cargando...';}
     const ok=await cargarDesdeSheets(savedUrl);
-    if(ok){guardarEstado();calcularStock();calcTotal();actualizarDev();actualizarResumen();if(ind){ind.style.background='#E1F5EE';ind.style.color='#0F6E56';ind.textContent='✓ Datos OK';} setTimeout(()=>{if(ind){ind.style.background='#EAF3DE';ind.style.color='#3B6D11';ind.textContent='En línea';}},3000);}
+    if(ok){
+      guardarCacheStockInicial(); // Sheets tiene prioridad sobre cache local
+      guardarEstado();calcularStock();calcTotal();actualizarDev();actualizarResumen();
+      if(ind){ind.style.background='#E1F5EE';ind.style.color='#0F6E56';ind.textContent='✓ Datos OK';}
+      setTimeout(()=>{if(ind){ind.style.background='#EAF3DE';ind.style.color='#3B6D11';ind.textContent='En línea';}},3000);
+    }
     else{if(ind){ind.style.background='#EAF3DE';ind.style.color='#3B6D11';ind.textContent='En línea (local)';}}
   }
 });
+
+// ---- RESET TOTAL ----
+async function resetearTodo() {
+  if (!confirm('¿Borrar TODAS las ventas, gastos y pedidos?\n\nEsto no se puede deshacer. Los clientes y el stock inicial se mantienen.')) return;
+
+  // Limpiar datos locales
+  ventas = [];
+  gastos = [];
+  pedidos = [];
+  bCasaModificado.clear();
+  // Mantener bCasa como está (datos de Sheets)
+  // Mantener deudas con $25.000 para dispensers
+  Object.keys(deudas).forEach(k => { deudas[k] = 0; });
+  CLIENTES_DISPENSER.forEach(n => { if(deudas[n] !== undefined) deudas[n] = 25000; });
+
+  guardarEstado();
+  calcularStock();
+  actualizarResumen();
+
+  // Limpiar Sheets y recargar estado original de clientes
+  const url = localStorage.getItem('scriptUrl') || '';
+  if (url && url.startsWith('https://script.google.com')) {
+    try {
+      // 1. Borrar ventas/gastos en Sheets
+      await fetch(url, {
+        method: 'POST',
+        body: JSON.stringify({
+          tipo: 'todo',
+          ventas: [],
+          gastos: [],
+          stock: stock,
+          clientes: [], // vacío = no tocar clientes en Sheets
+          deudas: Object.fromEntries(Object.entries(deudas))
+        })
+      });
+      // 2. Recargar datos de Sheets para restaurar bCasa al estado original
+      const ind = document.getElementById('sync-indicator');
+      if(ind){ ind.style.background='#FFF3CD'; ind.style.color='#854F0B'; ind.textContent='⏳ Restaurando...'; }
+      const ok = await cargarDesdeSheets(url);
+      if (ok) {
+        guardarEstado();
+        calcularStock();
+        actualizarResumen();
+        if(ind){ ind.style.background='#EAF3DE'; ind.style.color='#3B6D11'; ind.textContent='En línea'; }
+        alert('✓ Registros borrados. Los bidones de clientes volvieron al estado de Sheets.');
+      }
+    } catch(e) {
+      alert('Datos locales borrados. Error: ' + e.message);
+    }
+  } else {
+    alert('✓ Registros borrados localmente. Recargá desde Sheets para restaurar los bidones de clientes.');
+  }
+
+  showScreen('inicio');
+}
 </script>
 </body>
 </html>

@@ -1285,7 +1285,7 @@ function renderUsuariosConRol() {
 async function sincUsuariosSheets() {
   const url = localStorage.getItem('scriptUrl') || '';
   if (!url || !url.startsWith('https://script.google.com')) return;
-  const us = cargarUsuarios().map(u => ({ nombre: u.nombre, rol: u.rol || 'repartidor' }));
+  const us = cargarUsuarios(); // incluye pass y rol
   try {
     fetch(url, { method: 'POST', body: JSON.stringify({ tipo: 'usuarios', usuarios: us }) });
   } catch(e) {}
@@ -1405,6 +1405,7 @@ function agregarUsuario(){
   const us=cargarUsuarios(); if(us.find(u=>u.nombre.toLowerCase()===n.toLowerCase())){alert('Ya existe ese usuario.');return;}
   us.push({nombre:n,pass:p,rol}); guardarUsuarios(us);
   sincUsuariosSheets();
+  renderLoginUsuarios();
   document.getElementById('nuevo-user-nombre').value=''; document.getElementById('nuevo-user-pass').value=''; renderUsuarios();
 }
 function eliminarUsuario(n){
@@ -1782,7 +1783,12 @@ async function cargarDesdeSheets(url){
       Object.assign(stockInicial, d.stockInicial);
       guardarCacheStockInicial();
     }
-    bCasaModificado.clear(); // Limpiar para no pisar datos de Sheets recién cargados
+    // Cargar usuarios desde Sheets (tienen prioridad sobre localStorage)
+    if (d.usuarios && d.usuarios.length) {
+      guardarUsuarios(d.usuarios);
+      renderLoginUsuarios();
+    }
+    bCasaModificado.clear();
     return true;
   }catch(e){ console.error('Error cargando Sheets:', e); return false; }
 }

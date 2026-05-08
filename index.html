@@ -752,7 +752,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 </div>
 
 <!-- LOGIN -->
-<div class="login-overlay" id="login-overlay">
+<div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
@@ -1874,6 +1874,17 @@ window.addEventListener('load',async()=>{
       mostrarLogin();
     }
   }
+  // Asegurar que el login se muestre correctamente después de todo
+  setTimeout(() => {
+    if (document.getElementById('login-overlay').style.display !== 'none' ||
+        document.getElementById('setup-overlay').style.display !== 'none') {
+      // Ya está mostrando algo, solo asegurar que los usuarios estén renderizados
+      renderLoginUsuarios();
+      const dbg = document.getElementById('login-debug');
+      if(dbg) dbg.textContent = 'Usuarios cargados: ' + cargarUsuarios().length;
+    }
+  }, 300);
+
   if(savedUrl&&savedUrl.startsWith('https://script.google.com')){
     const ind=document.getElementById('sync-indicator');
     if(ind){ind.style.background='#FFF3CD';ind.style.color='#854F0B';ind.textContent='⏳ Cargando...';}

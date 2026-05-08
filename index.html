@@ -904,7 +904,11 @@ function registrarVenta(){
     const d20=nb20r>0?nb20r+' bid.20L':'',d10=nb10r>0?nb10r+' bid.10L':'';
     const tdya=cliSel&&tieneDispenser(cliSel.nombre);
     nombreVenta=(tdya?'Alquiler dispenser':'Entrega dispenser')+(d20||d10?' + '+[d20,d10].filter(Boolean).join('+'):'');
-    if(cliSel&&!tdya&&!CLIENTES_DISPENSER_RESERVADO.has(cliSel.nombre)){CLIENTES_DISPENSER.add(cliSel.nombre);deudas[cliSel.nombre]=0;}
+    if(cliSel&&!tdya){
+      CLIENTES_DISPENSER.add(cliSel.nombre);
+      CLIENTES_DISPENSER_RESERVADO.delete(cliSel.nombre);
+      deudas[cliSel.nombre]=0;
+    }
     if(cliSel){const b=bCasa[cliSel.nombre]||{b20:0,b10:0};b.b20+=nb20r;b.b10+=nb10r;bCasa[cliSel.nombre]=b;bCasaModificado.add(cliSel.nombre);}
     if(cliSel){const mes=getMesActual(),n=cliSel.nombre;if(!dispenserMes[n]||dispenserMes[n].mes!==mes)dispenserMes[n]={mes,cant:0};dispenserMes[n].cant+=tbr;}
     bidDisp.bd20=0;bidDisp.bd10=0;document.getElementById('bd20').textContent='0';document.getElementById('bd10').textContent='0';

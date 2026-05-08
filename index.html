@@ -1227,7 +1227,18 @@ function calcMontoEstimadoPedido(){
       nota=calc.gratis>0?`🧊 ${calc.gratis} bonif. + ${calc.cobrados} × ${fmt(precios.p20)}`:`${cant} × ${fmt(precios.p20)}`;
     }else{total=precios.p20*cant;nota=`${cant} × ${fmt(precios.p20)}`;}
   }else if(key==='4000|800|10'){total=precios.p10*cant;nota=`${cant} × ${fmt(precios.p10)}`;
-  }else if(key==='disp-fc|0|0'){total=precios.pdisp;nota='Alquiler dispenser';}
+  }else if(key==='disp-fc|0|0'){
+    // Dispenser: precio base incluye 4 bidones, los extras se cobran a p20 c/u
+    const ya=tieneDispenser(cliSelPedido.nombre)?getBidonesDispenserMes(cliSelPedido.nombre):0;
+    const bonRestantes=Math.max(0,4-ya);
+    const gratis=Math.min(cant,bonRestantes);
+    const extras=Math.max(0,cant-bonRestantes);
+    total=precios.pdisp+extras*precios.p20;
+    if(ya===0&&cant<=4) nota=`Alquiler + ${cant} bidón${cant>1?'es':''} incl.`;
+    else if(gratis>0&&extras>0) nota=`Alquiler + ${gratis} incl. + ${extras} extra × ${fmt(precios.p20)}`;
+    else if(extras>0) nota=`Alquiler + ${extras} extra × ${fmt(precios.p20)} (ya usó los 4 bonif.)`;
+    else nota=`Alquiler + ${cant} bidón${cant>1?'es':''} incl. (quedan ${bonRestantes-cant} bonif.)`;
+  }
   val.textContent=fmt(total);
   sub.textContent=nota;
   row.style.display='block';

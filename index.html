@@ -1322,8 +1322,27 @@ async function finalizarSetup() {
     return;
   }
   localStorage.setItem('scriptUrl', url);
-  msg.style.display='block'; msg.style.color='#3B6D11';
-  msg.textContent='URL guardada. Iniciá sesión.';
+  msg.style.display='block'; msg.style.color='#185FA5';
+  msg.textContent='Conectando...';
+  
+  // Intentar cargar usuarios de Sheets
+  try {
+    const res = await fetch(url + '?accion=leer');
+    const json = await res.json();
+    if (json.ok && json.datos && json.datos.usuarios && json.datos.usuarios.length) {
+      guardarUsuarios(json.datos.usuarios);
+      msg.style.color='#3B6D11';
+      msg.textContent='Usuarios cargados. Iniciá sesión.';
+    } else {
+      msg.style.color='#3B6D11';
+      msg.textContent='Conectado. Iniciá sesión.';
+    }
+  } catch(e) {
+    // Si falla el fetch igual dejamos entrar — los datos se cargan después
+    msg.style.color='#854F0B';
+    msg.textContent='Sin conexión. Iniciá sesión igual.';
+  }
+  
   setTimeout(() => {
     document.getElementById('setup-overlay').style.display='none';
     mostrarLogin();

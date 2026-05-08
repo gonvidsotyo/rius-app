@@ -1308,19 +1308,25 @@ async function finalizarSetup() {
   const msg = document.getElementById('setup-msg');
   if (!url || !url.startsWith('https://script.google.com')) {
     msg.style.display='block'; msg.style.color='#B42318';
-    msg.textContent='⚠ URL inválida. Tiene que empezar con https://script.google.com';
+    msg.textContent='URL invalida. Debe empezar con https://script.google.com';
     return;
   }
-  msg.style.display='block'; msg.style.color='#185FA5'; msg.textContent='⏳ Cargando datos...';
-  localStorage.setItem('scriptUrl', url);
-  const ok = await cargarDesdeSheets(url);
-  if (ok) {
-    guardarEstado(); calcularStock(); actualizarResumen();
-    // NO llamar sincAuto aquí — acabamos de cargar datos de Sheets, no queremos pisarlos
-    msg.style.color='#3B6D11'; msg.textContent='✓ Datos cargados';
-    setTimeout(() => { document.getElementById('setup-overlay').style.display='none'; mostrarLogin(); }, 1000);
-  } else {
-    msg.style.color='#B42318'; msg.textContent='✗ No se pudo conectar. Verificá la URL.';
+  msg.style.display='block'; msg.style.color='#185FA5'; msg.textContent='Conectando con Sheets...';
+  try {
+    localStorage.setItem('scriptUrl', url);
+    const res = await fetch(url + '?accion=leer');
+    const json = await res.json();
+    if (!json.ok || !json.datos) throw new Error('Sin datos');
+    if (json.datos.usuarios && json.datos.usuarios.length) {
+      guardarUsuarios(json.datos.usuarios);
+    }
+    msg.style.color='#3B6D11'; msg.textContent='Usuarios cargados. Iniciá sesión.';
+    setTimeout(() => {
+      document.getElementById('setup-overlay').style.display='none';
+      mostrarLogin();
+    }, 800);
+  } catch(e) {
+    msg.style.color='#B42318'; msg.textContent='No se pudo conectar. Verifica la URL e intentá de nuevo.';
   }
 }
 
@@ -1402,10 +1408,30 @@ function seleccionarLoginUsuario(n){
   setTimeout(()=>document.getElementById('login-pass').focus(),100);
 }
 function volverSeleccion(){ usuarioPendiente=null; document.getElementById('login-user-sel').style.display='flex'; document.getElementById('login-pass-section').style.display='none'; document.getElementById('login-error').style.display='none'; }
-function intentarLogin(){
+async function intentarLogin(){
   const pass=document.getElementById('login-pass').value;
   const user=cargarUsuarios().find(u=>u.nombre===usuarioPendiente&&u.pass===pass);
-  if(user){ usuarioActual=user.nombre; localStorage.setItem('riusSession',user.nombre); document.getElementById('login-overlay').style.display='none'; document.getElementById('login-error').style.display='none'; aplicarPermisos(); showScreen('inicio'); }
+  if(user){
+    usuarioActual=user.nombre;
+    localStorage.setItem('riusSession',user.nombre);
+    document.getElementById('login-overlay').style.display='none';
+    document.getElementById('login-error').style.display='none';
+    aplicarPermisos();
+    // Cargar todos los datos desde Sheets al iniciar sesión
+    const url = localStorage.getItem('scriptUrl')||'';
+    if (url && url.startsWith('https://script.google.com')) {
+      const ind = document.getElementById('sync-indicator');
+      if(ind){ ind.style.background='#FFF3CD'; ind.style.color='#854F0B'; ind.textContent='Cargando...'; }
+      try {
+        const ok = await cargarDesdeSheets(url);
+        if(ok){ guardarEstado(); }
+        if(ind){ ind.style.background='#EAF3DE'; ind.style.color='#3B6D11'; ind.textContent='En linea'; }
+      } catch(e) { cargarEstado(); }
+    } else { cargarEstado(); }
+    calcularStock(); calcTotal(); actualizarDev(); actualizarResumen(); renderPedidos();
+    iniciarAutoRecarga();
+    showScreen('inicio');
+  }
   else{ document.getElementById('login-error').style.display='block'; document.getElementById('login-pass').value=''; document.getElementById('login-pass').focus(); }
 }
 function cerrarSesion(){ usuarioActual=null; localStorage.removeItem('riusSession'); document.getElementById('login-pass').value=''; volverSeleccion(); renderLoginUsuarios(); document.getElementById('login-overlay').style.display='flex'; }
@@ -1879,26 +1905,69 @@ window.addEventListener('load',async()=>{
   if(!hayLocal) CLIENTES_DISPENSER.forEach(n=>{deudas[n]=25000;});
   calcularStock(); calcTotal(); actualizarDev(); actualizarResumen();
   iniciarAutoRecarga();
-  // Si no hay URL configurada → mostrar setup
+  // ── FLUJO ESTRICTO DE 3 PASOS ──────────────────────────────
+  // 1. Sin URL → setup
+  // 2. Con URL pero sin sesión → cargar usuarios de Sheets → login
+  // 3. Con sesión válida → entrar
+
   let savedUrlCheck;
   try { savedUrlCheck = localStorage.getItem('scriptUrl'); } catch(e) { savedUrlCheck = null; }
-  
+
   if (!savedUrlCheck) {
+    // PASO 1: Primera vez — pedir URL
     document.getElementById('setup-overlay').style.display = 'flex';
     document.getElementById('login-overlay').style.display = 'none';
-  } else {
-    // Verificar sesión guardada
+    return; // No cargar nada más
+  }
+
+  // Tenemos URL — cargar usuarios desde Sheets primero
+  try {
+    const ind = document.getElementById('sync-indicator');
+    if(ind){ ind.style.background='#FFF3CD'; ind.style.color='#854F0B'; ind.textContent='Cargando...'; }
+    const res = await fetch(savedUrlCheck + '?accion=leer');
+    const json = await res.json();
+    if (json.ok && json.datos && json.datos.usuarios && json.datos.usuarios.length) {
+      guardarUsuarios(json.datos.usuarios);
+    }
+    // Cargar resto de datos si hay sesión guardada
     let sesion = null;
     try { sesion = localStorage.getItem('riusSession'); } catch(e) {}
     const userMatch = sesion ? cargarUsuarios().find(u => u.nombre === sesion) : null;
     if (userMatch) {
+      // Cargar todos los datos
+      if (json.ok && json.datos) {
+        const d = json.datos;
+        if(d.ventas&&d.ventas.length) ventas=d.ventas.map(v=>({...v,hora:v.hora?new Date(v.hora):new Date(),dev20:v.dev20||0,dev10:v.dev10||0,nuevaDeuda:0,deudaSaldada:0}));
+        if(d.pedidos&&d.pedidos.length) pedidos=d.pedidos;
+        if(d.gastos&&d.gastos.length) gastos=d.gastos.map(g=>({...g,hora:new Date(g.hora),bid20:g.bid20||0,bid10:g.bid10||0}));
+        if(d.clientes&&d.clientes.length) d.clientes.forEach(c=>{if(!bCasa[c.nombre])bCasa[c.nombre]={b20:0,b10:0};bCasa[c.nombre].b20=Number(c.b20)||0;bCasa[c.nombre].b10=Number(c.b10)||0;});
+        if(d.deudas&&Object.keys(d.deudas).length) Object.assign(deudas,d.deudas);
+        if(d.stockInicial) Object.assign(stockInicial,d.stockInicial);
+        bCasaModificado.clear();
+      }
+      guardarEstado();
       usuarioActual = userMatch.nombre;
       document.getElementById('login-overlay').style.display = 'none';
       aplicarPermisos();
-      showScreen('inicio');
+      calcularStock(); calcTotal(); actualizarDev(); actualizarResumen(); renderPedidos();
+      if(ind){ ind.style.background='#EAF3DE'; ind.style.color='#3B6D11'; ind.textContent='En linea'; }
     } else {
-      // Sin sesión válida → siempre mostrar login
-      usuarioActual = null;
+      // PASO 2: Hay URL, no hay sesión → mostrar login con usuarios de Sheets
+      if(ind){ ind.style.background='#EAF3DE'; ind.style.color='#3B6D11'; ind.textContent='En linea'; }
+      mostrarLogin();
+    }
+  } catch(e) {
+    // Sin conexión — usar datos locales si hay sesión
+    let sesion = null;
+    try { sesion = localStorage.getItem('riusSession'); } catch(err) {}
+    const userMatch = sesion ? cargarUsuarios().find(u => u.nombre === sesion) : null;
+    if (userMatch) {
+      cargarEstado();
+      usuarioActual = userMatch.nombre;
+      document.getElementById('login-overlay').style.display = 'none';
+      aplicarPermisos();
+      calcularStock(); calcTotal(); actualizarDev(); actualizarResumen(); renderPedidos();
+    } else {
       mostrarLogin();
     }
   }

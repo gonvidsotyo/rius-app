@@ -756,6 +756,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
+    <div id="login-debug" style="font-size:11px;color:#8e8e93;margin-bottom:6px;"></div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
       <div id="login-selected-user" style="font-size:14px;font-weight:600;color:#185FA5;margin-bottom:12px;"></div>
@@ -1356,7 +1357,9 @@ function cargarUsuarios(){
 function guardarUsuarios(u){ localStorage.setItem('riusUsers',JSON.stringify(u)); }
 function renderLoginUsuarios(){
   const u = cargarUsuarios();
+  const dbg = document.getElementById('login-debug');
   const sel = document.getElementById('login-user-sel');
+  if(dbg) dbg.textContent = 'Usuarios: ' + u.length + ' | ' + u.map(x=>x.nombre).join(', ');
   if(!sel) return;
   const rolColors = {admin:'#185FA5', gerente:'#854F0B', repartidor:'#3B6D11'};
   const rolLabels = {admin:'God', gerente:'Gerente', repartidor:'Repartidor'};

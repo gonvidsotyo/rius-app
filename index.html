@@ -17,6 +17,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 input, select, textarea { font-size: 16px !important; }
 button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+#app-body { display: none; } /* Oculto hasta autenticación */
 .qty-ctrl { display: flex !important; flex-direction: row !important; align-items: center; gap: 12px; }
 .qty-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .qty-row:last-child { margin-bottom: 0; }
@@ -204,7 +205,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .deuda-total-val { font-size: 14px; font-weight: 600; color: #185FA5; }
 </style>
 
-<div class="app">
+<div class="app" id="app-body">
   <div class="topbar">
     <div>
       <div class="topbar-title">Rius</div>
@@ -1229,6 +1230,15 @@ function filtrarGastos(filtro){
 
 // ---- USUARIOS ----
 let usuarioActual=null, usuarioPendiente=null, usuarioAEliminar=null;
+// ---- CONTROL DE ACCESO ----
+function mostrarApp() {
+  document.getElementById('app-body').style.display = 'block';
+}
+
+function ocultarApp() {
+  document.getElementById('app-body').style.display = 'none';
+}
+
 // ---- ROLES Y PERMISOS ----
 const PERMISOS = {
   admin:      ['inicio','pedidos','venta','clientes','stock','gastos','usuarios','sync'],
@@ -1430,6 +1440,7 @@ async function intentarLogin(){
     } else { cargarEstado(); }
     calcularStock(); calcTotal(); actualizarDev(); actualizarResumen(); renderPedidos();
     iniciarAutoRecarga();
+    mostrarApp();
     showScreen('inicio');
   }
   else{ document.getElementById('login-error').style.display='block'; document.getElementById('login-pass').value=''; document.getElementById('login-pass').focus(); }
@@ -1949,6 +1960,7 @@ window.addEventListener('load',async()=>{
       usuarioActual = userMatch.nombre;
       document.getElementById('login-overlay').style.display = 'none';
       aplicarPermisos();
+      mostrarApp();
       calcularStock(); calcTotal(); actualizarDev(); actualizarResumen(); renderPedidos();
       if(ind){ ind.style.background='#EAF3DE'; ind.style.color='#3B6D11'; ind.textContent='En linea'; }
     } else {
@@ -1966,6 +1978,7 @@ window.addEventListener('load',async()=>{
       usuarioActual = userMatch.nombre;
       document.getElementById('login-overlay').style.display = 'none';
       aplicarPermisos();
+      mostrarApp();
       calcularStock(); calcTotal(); actualizarDev(); actualizarResumen(); renderPedidos();
     } else {
       mostrarLogin();
@@ -1973,12 +1986,11 @@ window.addEventListener('load',async()=>{
   }
   // Asegurar que el login se muestre correctamente después de todo
   setTimeout(() => {
-    if (document.getElementById('login-overlay').style.display !== 'none' ||
-        document.getElementById('setup-overlay').style.display !== 'none') {
-      // Ya está mostrando algo, solo asegurar que los usuarios estén renderizados
+    if (!usuarioActual) {
+      ocultarApp();
       renderLoginUsuarios();
       const dbg = document.getElementById('login-debug');
-      if(dbg) dbg.textContent = 'Usuarios cargados: ' + cargarUsuarios().length;
+      if(dbg) dbg.textContent = 'Usuarios: ' + cargarUsuarios().length;
     }
   }, 300);
 

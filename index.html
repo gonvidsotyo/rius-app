@@ -577,8 +577,19 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     <div class="add-user-form">
       <div class="card-title">Agregar usuario</div>
       <div class="venta-form">
-        <div><label>Nombre</label><input type="text" style="font-size:16px;" id="nuevo-user-nombre" placeholder="Ej: Maca" /></div>
+        <div><label>Nombre</label><input type="text" id="nuevo-user-nombre" placeholder="Ej: Maca" /></div>
         <div><label>Contraseña</label><input type="password" id="nuevo-user-pass" placeholder="Mínimo 4 caracteres" /></div>
+        <div>
+          <label>Rol</label>
+          <select id="nuevo-user-rol" onchange="mostrarPermisosPreview()">
+            <option value="admin">👑 God — acceso total</option>
+            <option value="gerente">📊 Gerente — ver todo, sin config crítica</option>
+            <option value="repartidor" selected>🚚 Repartidor — ventas, pedidos y clientes</option>
+          </select>
+        </div>
+        <div id="permisos-preview" style="background:#f2f2f7;border-radius:10px;padding:10px;font-size:12px;color:#8e8e93;line-height:1.8;">
+          🚚 <b>Repartidor:</b> Resumen, Pedidos, Venta, Clientes
+        </div>
         <button class="confirm-btn" onclick="agregarUsuario()" style="margin-top:0;">Agregar usuario</button>
       </div>
     </div>
@@ -841,7 +852,12 @@ function showScreen(id){
   if(id==='stock') calcularStock();
   if(id==='gastos') filtrarGastos(gastosFiltroActual||'hoy');
   if(id==='pedidos'){ renderPedidos(); const hoy=new Date().toISOString().split('T')[0]; document.getElementById('ped-fecha').value=hoy; limpiarClientePedido(); document.getElementById('ped-cant').value=1; document.getElementById('ped-cant-display').textContent='1'; }
-  if(id==='usuarios'){ renderUsuarios(); document.getElementById('sesion-actual').textContent=usuarioActual?'👤 '+usuarioActual:'—'; }
+  if(id==='usuarios'){
+    renderUsuariosConRol();
+    const rolNames={'admin':'God','gerente':'Gerente','repartidor':'Repartidor'};
+    const rolActual=rolNames[getRol()]||'';
+    document.getElementById('sesion-actual').textContent=usuarioActual?'👤 '+usuarioActual+(rolActual?' · '+rolActual:''):'—';
+  }
   if(id==='sync'){ cargarPrecios(); const s=localStorage.getItem('scriptUrl'); if(s){document.getElementById('script-url').value=s;guardarUrl();} }
 }
 
@@ -1201,6 +1217,79 @@ function filtrarGastos(filtro){
 
 // ---- USUARIOS ----
 let usuarioActual=null, usuarioPendiente=null, usuarioAEliminar=null;
+// ---- ROLES Y PERMISOS ----
+const PERMISOS = {
+  admin:      ['inicio','pedidos','venta','clientes','stock','gastos','usuarios','sync'],
+  gerente:    ['inicio','pedidos','venta','clientes','stock','gastos'],
+  repartidor: ['inicio','pedidos','venta','clientes']
+};
+
+const PERMISOS_LABELS = {
+  admin:      '👑 <b>God:</b> Acceso total a todas las secciones',
+  gerente:    '📊 <b>Gerente:</b> Resumen, Pedidos, Venta, Clientes, Stock, Gastos',
+  repartidor: '🚚 <b>Repartidor:</b> Resumen, Pedidos, Venta, Clientes'
+};
+
+function getRol() {
+  const us = cargarUsuarios().find(u => u.nombre === usuarioActual);
+  return us?.rol || 'repartidor';
+}
+
+function aplicarPermisos() {
+  const rol = getRol();
+  const permitidas = PERMISOS[rol] || PERMISOS.repartidor;
+  // Hide/show nav buttons based on role
+  const navScreens = ['inicio','pedidos','venta','clientes','stock','gastos','usuarios','sync'];
+  document.querySelectorAll('.nav-btn').forEach((btn, i) => {
+    const screen = navScreens[i];
+    if (screen) btn.style.display = permitidas.includes(screen) ? '' : 'none';
+  });
+  // Hide topbar icons if not admin/gerente
+  // Hide nav/topbar items based on role
+  document.querySelectorAll('button[onclick*="showScreen"]').forEach(btn => {
+    const m = btn.getAttribute('onclick').match(/showScreen\('(\w+)'\)/);
+    if (!m) return;
+    const sc = m[1];
+    if (!permitidas.includes(sc)) btn.style.display='none';
+    else btn.style.display='';
+  });
+}
+
+function mostrarPermisosPreview() {
+  const rol = document.getElementById('nuevo-user-rol')?.value || 'repartidor';
+  const el = document.getElementById('permisos-preview');
+  if (el) el.innerHTML = PERMISOS_LABELS[rol] || '';
+}
+
+function renderUsuariosConRol() {
+  const us = cargarUsuarios();
+  const lista = document.getElementById('usuarios-lista');
+  if (!lista) return;
+  const rolLabels = {admin:'👑 God', gerente:'📊 Gerente', repartidor:'🚚 Repartidor'};
+  const rolColors = {admin:'#185FA5', gerente:'#854F0B', repartidor:'#3B6D11'};
+  lista.innerHTML = us.map(u => {
+    const rl = rolLabels[u.rol||'repartidor'] || '🚚 Repartidor';
+    const rc = rolColors[u.rol||'repartidor'] || '#3B6D11';
+    const esActual = u.nombre === usuarioActual;
+    const esc = u.nombre.replace(/'/g, "&#39;");
+    const delBtn = esActual ? '' : '<button class="user-del" onclick="eliminarUsuario(\'' + esc + '\')">Eliminar</button>';
+    return '<div class="user-card"><div class="user-info">' +
+      '<div class="user-avatar" style="background:' + rc + '">' + u.nombre.charAt(0).toUpperCase() + '</div>' +
+      '<div><div class="user-name">' + u.nombre + (esActual ? ' <span style="font-size:11px;color:#3B6D11;">● activo</span>' : '') + '</div>' +
+      '<div style="font-size:11px;color:' + rc + ';font-weight:500;">' + rl + '</div></div></div>' +
+      delBtn + '</div>';
+  }).join('');
+}
+
+async function sincUsuariosSheets() {
+  const url = localStorage.getItem('scriptUrl') || '';
+  if (!url || !url.startsWith('https://script.google.com')) return;
+  const us = cargarUsuarios().map(u => ({ nombre: u.nombre, rol: u.rol || 'repartidor' }));
+  try {
+    fetch(url, { method: 'POST', body: JSON.stringify({ tipo: 'usuarios', usuarios: us }) });
+  } catch(e) {}
+}
+
 // ---- SETUP PRIMERA VEZ ----
 async function finalizarSetup() {
   const url = document.getElementById('setup-url').value.trim();
@@ -1253,11 +1342,17 @@ function mostrarLogin() {
   document.getElementById('login-overlay').style.display='flex';
 }
 
-function cargarUsuarios(){ try{const r=localStorage.getItem('riusUsers');if(r)return JSON.parse(r);}catch(e){} return [{nombre:'Admin',pass:'admin1234'}]; }
+function cargarUsuarios(){ try{const r=localStorage.getItem('riusUsers');if(r)return JSON.parse(r);}catch(e){} return [{nombre:'Admin',pass:'admin1234',rol:'admin'}]; }
 function guardarUsuarios(u){ localStorage.setItem('riusUsers',JSON.stringify(u)); }
 function renderLoginUsuarios(){
-  const u=cargarUsuarios(); const sel=document.getElementById('login-user-sel');
-  sel.innerHTML=u.map(u2=>`<button class="login-user-btn" onclick="seleccionarLoginUsuario('${u2.nombre.replace(/'/g,"\\'")}')"><div class="login-user-avatar">${u2.nombre.charAt(0).toUpperCase()}</div><span>${u2.nombre}</span></button>`).join('');
+  const u=cargarUsuarios();
+  const sel=document.getElementById('login-user-sel');
+  if(!sel) return;
+  sel.innerHTML=u.map(u2=>{
+    const roleColor = u2.rol==='admin'?'#185FA5':u2.rol==='gerente'?'#854F0B':'#3B6D11';
+    const roleLabel = u2.rol==='admin'?'God':u2.rol==='gerente'?'Gerente':'Repartidor';
+    return '<button class="login-user-btn" onclick="seleccionarLoginUsuario(\'' + u2.nombre.replace(/'/g,"\'") + '\')"><div class="login-user-avatar" style="background:' + roleColor + '">' + u2.nombre.charAt(0).toUpperCase() + '</div><div><div style="font-weight:600;">' + u2.nombre + '</div><div style="font-size:11px;color:#8e8e93;">' + roleLabel + '</div></div></button>';
+  }).join('');
 }
 function seleccionarLoginUsuario(n){
   usuarioPendiente=n;
@@ -1272,15 +1367,17 @@ function volverSeleccion(){ usuarioPendiente=null; document.getElementById('logi
 function intentarLogin(){
   const pass=document.getElementById('login-pass').value;
   const user=cargarUsuarios().find(u=>u.nombre===usuarioPendiente&&u.pass===pass);
-  if(user){ usuarioActual=user.nombre; localStorage.setItem('riusSession',user.nombre); document.getElementById('login-overlay').style.display='none'; document.getElementById('login-error').style.display='none'; showScreen('inicio'); }
+  if(user){ usuarioActual=user.nombre; localStorage.setItem('riusSession',user.nombre); document.getElementById('login-overlay').style.display='none'; document.getElementById('login-error').style.display='none'; aplicarPermisos(); showScreen('inicio'); }
   else{ document.getElementById('login-error').style.display='block'; document.getElementById('login-pass').value=''; document.getElementById('login-pass').focus(); }
 }
 function cerrarSesion(){ usuarioActual=null; localStorage.removeItem('riusSession'); document.getElementById('login-pass').value=''; volverSeleccion(); renderLoginUsuarios(); document.getElementById('login-overlay').style.display='flex'; }
 function agregarUsuario(){
   const n=document.getElementById('nuevo-user-nombre').value.trim(), p=document.getElementById('nuevo-user-pass').value.trim();
+  const rol=document.getElementById('nuevo-user-rol')?.value||'repartidor';
   if(!n||p.length<4){alert('Nombre requerido y contraseña de al menos 4 caracteres.');return;}
   const us=cargarUsuarios(); if(us.find(u=>u.nombre.toLowerCase()===n.toLowerCase())){alert('Ya existe ese usuario.');return;}
-  us.push({nombre:n,pass:p}); guardarUsuarios(us);
+  us.push({nombre:n,pass:p,rol}); guardarUsuarios(us);
+  sincUsuariosSheets();
   document.getElementById('nuevo-user-nombre').value=''; document.getElementById('nuevo-user-pass').value=''; renderUsuarios();
 }
 function eliminarUsuario(n){
@@ -1297,7 +1394,7 @@ function confirmarEliminarUsuario(){
   const pass=document.getElementById('modal-del-user-pass').value;
   const us=cargarUsuarios(), user=us.find(u=>u.nombre===usuarioAEliminar);
   if(!user||user.pass!==pass){ document.getElementById('modal-del-user-error').style.display='block'; document.getElementById('modal-del-user-pass').value=''; document.getElementById('modal-del-user-pass').focus(); return; }
-  guardarUsuarios(us.filter(u=>u.nombre!==usuarioAEliminar)); cerrarModalDelUser(); renderUsuarios();
+  guardarUsuarios(us.filter(u=>u.nombre!==usuarioAEliminar)); cerrarModalDelUser(); sincUsuariosSheets(); renderUsuariosConRol();
 }
 function renderUsuarios(){
   const us=cargarUsuarios();
@@ -1745,6 +1842,7 @@ window.addEventListener('load',async()=>{
     if (sesion && cargarUsuarios().find(u => u.nombre === sesion)) {
       usuarioActual = sesion;
       document.getElementById('login-overlay').style.display = 'none';
+      aplicarPermisos();
     } else {
       mostrarLogin();
     }

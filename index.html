@@ -291,12 +291,20 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
         <div>
           <label>Producto</label>
-          <select id="prod-sel" onchange="calcTotal(); actualizarDev();">
+          <select id="prod-sel" onchange="calcTotal(); actualizarDev(); toggleBidDisp();">
             <option value="5000|1000|20">Bidón 20L — $5.000</option>
             <option value="4000|800|10">Bidón 10L — $4.000</option>
             <option value="25000|0|0">Alquiler dispenser — $25.000</option>
+            <option value="disp-fc|0|0">Dispenser frío/calor + bidones</option>
             <option value="devdisp|0|0">Devolución de dispenser</option>
           </select>
+          <div id="bid-disp-row" style="display:none;margin-top:8px;background:#f2f2f7;border-radius:10px;padding:12px;">
+            <label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:8px;">Bidones incluidos</label>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;color:#8e8e93;">20L:</span><button class="qty-btn" onclick="chgBidDisp('bd20',-1)" type="button">−</button><span class="qty-num" id="bd20">0</span><button class="qty-btn" onclick="chgBidDisp('bd20',1)" type="button">+</button></div>
+              <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;color:#8e8e93;">10L:</span><button class="qty-btn" onclick="chgBidDisp('bd10',-1)" type="button">−</button><span class="qty-num" id="bd10">0</span><button class="qty-btn" onclick="chgBidDisp('bd10',1)" type="button">+</button></div>
+            </div>
+          </div>
         </div>
 
         <div>
@@ -355,7 +363,14 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
         <div class="total-row">
           <span class="total-label">Total venta</span>
-          <span class="total-value" id="total-venta">$5.000</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="total-value" id="total-venta">$5.000</span>
+            <button onclick="toggleEditMonto()" type="button" style="background:none;border:1px solid #e5e5ea;border-radius:8px;padding:4px 8px;font-size:12px;color:#8e8e93;cursor:pointer;">✏️</button>
+          </div>
+        </div>
+        <div id="edit-monto-row" style="display:none;margin-top:-4px;margin-bottom:4px;">
+          <input type="number" id="monto-manual" placeholder="Monto personalizado" style="width:100%;padding:9px 11px;border:1.5px solid #185FA5;border-radius:8px;font-size:16px;" oninput="aplicarMontoManual()" />
+          <div style="font-size:11px;color:#8e8e93;margin-top:3px;">Ingresá el monto a cobrar. El calculado era <span id="monto-calculado-ref"></span></div>
         </div>
         <div id="total-con-deuda-row" class="deuda-total-row" style="display:none;">
           <span class="deuda-total-label">+ Deuda anterior</span>
@@ -518,6 +533,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
             <option value="5000|1000|20">Bidón 20L</option>
             <option value="4000|800|10">Bidón 10L</option>
             <option value="25000|0|0">Alquiler dispenser</option>
+            <option value="disp-fc|0|0">Dispenser frío/calor + bidones</option>
           </select>
         </div>
         <div>
@@ -821,7 +837,7 @@ function showScreen(id){
   });
   if(id==='inicio') actualizarResumen();
   if(id==='clientes') renderClientes('');
-  if(id==='venta'){ limpiarCliente(); resetDev(); pagoActual='efectivo'; selPago('efectivo'); document.getElementById('cant').value=1; document.getElementById('cant-display').textContent='1'; calcTotal(); }
+  if(id==='venta'){ limpiarCliente(); resetDev(); resetEditMonto(); pagoActual='efectivo'; selPago('efectivo'); document.getElementById('cant').value=1; document.getElementById('cant-display').textContent='1'; toggleBidDisp(); calcTotal(); }
   if(id==='stock') calcularStock();
   if(id==='gastos') filtrarGastos(gastosFiltroActual||'hoy');
   if(id==='pedidos'){ renderPedidos(); const hoy=new Date().toISOString().split('T')[0]; document.getElementById('ped-fecha').value=hoy; limpiarClientePedido(); document.getElementById('ped-cant').value=1; document.getElementById('ped-cant-display').textContent='1'; }
@@ -919,12 +935,29 @@ function actualizarDev(){
 }
 
 // ---- CANTIDAD ----
+// ---- DISPENSER FRIO/CALOR BIDONES ----
+const bidDisp = { bd20: 0, bd10: 0 };
+function chgBidDisp(id, delta) { bidDisp[id]=Math.max(0,bidDisp[id]+delta); document.getElementById(id).textContent=bidDisp[id]; calcTotal(); }
+function toggleBidDisp() { const key=document.getElementById('prod-sel').value; const row=document.getElementById('bid-disp-row'); if(row) row.style.display=key==='disp-fc|0|0'?'block':'none'; if(key!=='disp-fc|0|0'){bidDisp.bd20=0;bidDisp.bd10=0;} }
+
+// ---- EDITAR MONTO ----
+let montoManualActivo = false;
+function toggleEditMonto() {
+  const row=document.getElementById('edit-monto-row'); montoManualActivo=!montoManualActivo; row.style.display=montoManualActivo?'block':'none';
+  if(montoManualActivo){ const actual=document.getElementById('total-venta').textContent.replace(/[^0-9]/g,''); document.getElementById('monto-manual').value=actual; document.getElementById('monto-calculado-ref').textContent=document.getElementById('total-venta').textContent; document.getElementById('monto-manual').focus(); } else { calcTotal(); }
+}
+function aplicarMontoManual() { const val=parseInt(document.getElementById('monto-manual').value)||0; document.getElementById('total-venta').textContent=fmt(val); }
+function getMontoFinal(calculado) { return montoManualActivo ? (parseInt(document.getElementById('monto-manual').value)||0) : calculado; }
+function resetEditMonto() { montoManualActivo=false; const row=document.getElementById('edit-monto-row'); if(row) row.style.display='none'; }
+
 function chgCant(delta){ const inp=document.getElementById('cant'),disp=document.getElementById('cant-display'); let v=Math.max(1,(parseInt(inp.value)||1)+delta); inp.value=v; disp.textContent=v; calcTotal(); actualizarDev(); }
 
 // ---- CALC TOTAL ----
 function calcTotal(){
   const key=document.getElementById('prod-sel').value; const cant=parseInt(document.getElementById('cant').value)||1;
   const res=document.getElementById('bidones-resumen');
+  // Aplicar monto manual si está activo
+  total = getMontoFinal(total);
   const pagarDeuda=document.getElementById('pagar-deuda-check')?.checked&&pagoActual!=='nopago';
   const deudaCli=cliSel?getDeuda(cliSel.nombre):0;
   const tcdr=document.getElementById('total-con-deuda-row'), tcde=document.getElementById('total-con-deuda');
@@ -942,6 +975,11 @@ function calcTotal(){
     res.textContent='⏳ Dispenser reservado — precio normal'; res.classList.add('visible');
   } else if(key==='5000|1000|20'){ total=precios.p20*cant; ganancia=(precios.p20-precios.c20)*cant; if(key!=='25000|0|0') res.classList.remove('visible');
   } else if(key==='4000|800|10'){ total=precios.p10*cant; ganancia=(precios.p10-precios.c10)*cant; res.classList.remove('visible');
+  } else if(key==='disp-fc|0|0'){
+    total=precios.pdisp*cant; ganancia=precios.pdisp*cant;
+    const nb20=bidDisp.bd20,nb10=bidDisp.bd10;
+    const msg='🧊 Dispenser frío/calor'+(nb20>0||nb10>0?' + '+[nb20>0?nb20+' bid.20L':'',nb10>0?nb10+' bid.10L':''].filter(Boolean).join(' + '):'');
+    res.textContent=msg; res.classList.add('visible');
   } else if(key==='devdisp|0|0'){ total=0; ganancia=0; res.textContent='♻️ Devolver dispenser — sin costo, se actualiza stock'; res.classList.add('visible');
   } else { total=precios.pdisp*cant; ganancia=precios.pdisp*cant; res.classList.remove('visible'); }
   document.getElementById('total-venta').textContent=fmt(total);
@@ -963,6 +1001,14 @@ function registrarVenta(){
     dispenserMes[n].cant+=cant;
   } else if(key==='5000|1000|20'){ total=precios.p20*cant; ganancia=(precios.p20-precios.c20)*cant; nombreVenta='Bidón 20L';
   } else if(key==='4000|800|10'){ total=precios.p10*cant; ganancia=(precios.p10-precios.c10)*cant; nombreVenta='Bidón 10L';
+  } else if(key==='disp-fc|0|0'){
+    total=precios.pdisp*cant; ganancia=precios.pdisp*cant;
+    const desc20=bidDisp.bd20>0?bidDisp.bd20+' bid.20L':''; const desc10=bidDisp.bd10>0?bidDisp.bd10+' bid.10L':'';
+    nombreVenta='Dispenser frío/calor'+(desc20||desc10?' ('+[desc20,desc10].filter(Boolean).join('+')+')':'');
+    // Actualizar bCasa
+    if(cliSel){ const b=bCasa[cliSel.nombre]||{b20:0,b10:0}; b.b20+=bidDisp.bd20; b.b10+=bidDisp.bd10; bCasa[cliSel.nombre]=b; bCasaModificado.add(cliSel.nombre); }
+    bidDisp.bd20=0; bidDisp.bd10=0;
+    document.getElementById('bd20').textContent='0'; document.getElementById('bd10').textContent='0';
   } else if(key==='devdisp|0|0'){ total=0; ganancia=0; nombreVenta='Devol. dispenser';
     // Remover de CLIENTES_DISPENSER si está ahí
     if(cliSel) CLIENTES_DISPENSER.delete(cliSel.nombre);

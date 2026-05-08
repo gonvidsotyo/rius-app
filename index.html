@@ -1334,7 +1334,9 @@ async function finalizarSetup() {
       mostrarLogin();
     }, 800);
   } catch(e) {
-    msg.style.color='#B42318'; msg.textContent='No se pudo conectar. Verifica la URL e intentá de nuevo.';
+    msg.style.color='#B42318';
+    msg.textContent='Error: ' + (e.message || 'No se pudo conectar') + ' — Probá abrir la URL+?accion=leer en el navegador';
+    console.error('Setup error:', e);
   }
 }
 

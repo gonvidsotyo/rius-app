@@ -1360,21 +1360,22 @@ function renderLoginUsuarios(){
   if(!sel) return;
   const rolColors = {admin:'#185FA5', gerente:'#854F0B', repartidor:'#3B6D11'};
   const rolLabels = {admin:'God', gerente:'Gerente', repartidor:'Repartidor'};
-  let html = '';
+  sel.innerHTML = '';
   u.forEach(u2 => {
     const rol = u2.rol || 'admin';
-    const color = rolColors[rol] || '#185FA5';
-    const label = rolLabels[rol] || 'God';
-    const inicial = u2.nombre.charAt(0).toUpperCase();
-    const nombre = u2.nombre.replace(/'/g, "&#39;");
-    html += '<button class="login-user-btn" onclick="seleccionarLoginUsuario(&#39;' + nombre + '&#39;)">' +
-      '<div class="login-user-avatar" style="background:' + color + '">' + inicial + '</div>' +
+    const btn = document.createElement('button');
+    btn.className = 'login-user-btn';
+    btn.innerHTML =
+      '<div class="login-user-avatar" style="background:' + (rolColors[rol]||'#185FA5') + '">' +
+      u2.nombre.charAt(0).toUpperCase() + '</div>' +
       '<div><div style="font-weight:600;font-size:15px;">' + u2.nombre + '</div>' +
-      '<div style="font-size:11px;color:#8e8e93;margin-top:2px;">' + label + '</div></div>' +
-      '</button>';
+      '<div style="font-size:11px;color:#8e8e93;margin-top:2px;">' + (rolLabels[rol]||'God') + '</div></div>';
+    btn.addEventListener('mousedown', function(){ seleccionarLoginUsuario(u2.nombre); });
+    btn.addEventListener('touchend', function(e){ e.preventDefault(); seleccionarLoginUsuario(u2.nombre); });
+    sel.appendChild(btn);
   });
-  sel.innerHTML = html;
 }
+
 
 function seleccionarLoginUsuario(n){
   n = n.replace(/&#39;/g, "'");

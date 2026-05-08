@@ -1329,6 +1329,7 @@ async function finalizarSetup() {
   try {
     const res = await fetch(url + '?accion=leer');
     const json = await res.json();
+    console.log('Usuarios de Sheets:', json.datos?.usuarios);
     if (json.ok && json.datos && json.datos.usuarios && json.datos.usuarios.length) {
       guardarUsuarios(json.datos.usuarios);
       msg.style.color='#3B6D11';

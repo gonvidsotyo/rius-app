@@ -1322,7 +1322,7 @@ async function finalizarSetup() {
   msg.style.display='block'; msg.style.color='#185FA5'; msg.textContent='Conectando con Sheets...';
   try {
     localStorage.setItem('scriptUrl', url);
-    const res = await fetch(url + '?accion=leer');
+    const res = await fetch(url + '?accion=leer', {redirect: 'follow'});
     const json = await res.json();
     if (!json.ok || !json.datos) throw new Error('Sin datos');
     if (json.datos.usuarios && json.datos.usuarios.length) {
@@ -1782,7 +1782,7 @@ function guardarUrl(){
   else el.style.display='none';
 }async function cargarDesdeSheets(url){
   try{
-    const res=await fetch(url+'?accion=leer'); const json=await res.json();
+    const res=await fetch(url+'?accion=leer', {redirect:'follow'}); const json=await res.json();
     if(!json.ok||!json.datos) return false; const d=json.datos;
     if(d.ventas&&d.ventas.length) ventas=d.ventas.map(v=>({...v,hora:v.hora?new Date(v.hora):new Date(),dev20:v.dev20||0,dev10:v.dev10||0,nuevaDeuda:0,deudaSaldada:0}));
     if(d.pedidos&&d.pedidos.length) pedidos=d.pedidos;
@@ -1885,7 +1885,7 @@ window.addEventListener('load',async()=>{
   try {
     const ind = document.getElementById('sync-indicator');
     if(ind){ ind.style.background='#FFF3CD'; ind.style.color='#854F0B'; ind.textContent='Cargando...'; }
-    const res = await fetch(savedUrlCheck + '?accion=leer');
+    const res = await fetch(savedUrlCheck + '?accion=leer', {redirect:'follow'});
     const json = await res.json();
     if (json.ok && json.datos && json.datos.usuarios && json.datos.usuarios.length) {
       guardarUsuarios(json.datos.usuarios);

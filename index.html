@@ -185,7 +185,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
       <button onclick="recargarDesdeSheets()" id="btn-refresh" title="Actualizar" style="background:none;border:none;font-size:20px;cursor:pointer;padding:2px;line-height:1;-webkit-tap-highlight-color:transparent;">🔄</button>
-      <button onclick="showScreen('usuarios')" style="background:none;border:none;font-size:20px;cursor:pointer;padding:2px;line-height:1;-webkit-tap-highlight-color:transparent;">👤</button>
+      <button onclick="showScreen('usuarios')" id="btn-usuarios-topbar" style="background:none;border:none;font-size:20px;cursor:pointer;padding:2px;line-height:1;-webkit-tap-highlight-color:transparent;">👤</button>
       <button onclick="showScreen('sync')" style="background:none;border:none;font-size:20px;cursor:pointer;padding:2px;line-height:1;-webkit-tap-highlight-color:transparent;">⚙️</button>
       <div id="sync-indicator" style="font-size:11px;background:#EAF3DE;color:#3B6D11;padding:4px 8px;border-radius:8px;">En línea</div>
     </div>
@@ -1230,6 +1230,9 @@ function aplicarPermisos(){
   const navScreens=['inicio','pedidos','venta','clientes','stock','gastos'];
   document.querySelectorAll('.nav-btn').forEach((btn,i)=>{ const screen=navScreens[i]; if(screen) btn.style.display=permitidas.includes(screen)?'':'none'; });
   document.querySelectorAll('button[onclick*="showScreen"]').forEach(btn=>{ const m=btn.getAttribute('onclick').match(/showScreen\('(\w+)'\)/); if(!m) return; btn.style.display=permitidas.includes(m[1])?'':'none'; });
+  // Ícono de usuario según rol
+  const btnU=document.getElementById('btn-usuarios-topbar');
+  if(btnU) btnU.textContent=rol==='admin'?'👑':'👤';
 }
 function mostrarPermisosPreview(){ const rol=document.getElementById('nuevo-user-rol')?.value||'repartidor'; const el=document.getElementById('permisos-preview'); if(el) el.innerHTML=PERMISOS_LABELS[rol]||''; }
 function renderUsuariosConRol(){

@@ -1557,7 +1557,7 @@ async function resetearTodo(){
   }
   ventas=[]; gastos=[]; pedidos=[]; bCasaModificado.clear();
   Object.keys(deudas).forEach(k=>{deudas[k]=0;}); CLIENTES_DISPENSER.forEach(n=>{if(deudas[n]!==undefined) deudas[n]=25000;});
-  if(url&&url.startsWith('https://script.google.com')){ const ok=await cargarDesdeSheets(url); if(ok){ventas=[];gastos=[];pedidos[];} }
+  if(url&&url.startsWith('https://script.google.com')){ const ok=await cargarDesdeSheets(url); if(ok){ventas=[];gastos=[];pedidos=[];} }
   guardarEstado(); calcularStock(); actualizarResumen();
   if(ind){ind.style.background='#EAF3DE';ind.style.color='#3B6D11';ind.textContent='En línea';}
   showScreen('inicio'); alert('✓ Listo. Ventas, gastos y pedidos borrados.');

@@ -1002,9 +1002,18 @@ function calcTotal(){
   } else if(key==='5000|1000|20'){ total=precios.p20*cant; ganancia=(precios.p20-precios.c20)*cant; if(key!=='25000|0|0') res.classList.remove('visible');
   } else if(key==='4000|800|10'){ total=precios.p10*cant; ganancia=(precios.p10-precios.c10)*cant; res.classList.remove('visible');
   } else if(key==='disp-fc|0|0'){
-    total=precios.pdisp*cant; ganancia=precios.pdisp*cant;
-    const nb20=bidDisp.bd20,nb10=bidDisp.bd10;
-    const msg='🧊 Dispenser frío/calor'+(nb20>0||nb10>0?' + '+[nb20>0?nb20+' bid.20L':'',nb10>0?nb10+' bid.10L':''].filter(Boolean).join(' + '):'');
+    const nb20=bidDisp.bd20, nb10=bidDisp.bd10;
+    const totalBid = nb20 + nb10;
+    const bidExtra = Math.max(0, totalBid - 4);
+    const bidIncluidos = Math.min(totalBid, 4);
+    total = precios.pdisp + bidExtra * precios.p20;
+    ganancia = precios.pdisp + bidExtra * (precios.p20 - precios.c20);
+    let msg = '🧊 Dispenser frío/calor';
+    if (totalBid > 0) {
+      msg += ' · ' + [nb20>0?nb20+' bid.20L':'', nb10>0?nb10+' bid.10L':''].filter(Boolean).join(' + ');
+      if (bidIncluidos > 0) msg += ' (' + bidIncluidos + ' incl.)';
+      if (bidExtra > 0) msg += ' + ' + bidExtra + ' extra × ' + fmt(precios.p20);
+    }
     res.textContent=msg; res.classList.add('visible');
   } else if(key==='devdisp|0|0'){ total=0; ganancia=0; res.textContent='♻️ Devolver dispenser — sin costo, se actualiza stock'; res.classList.add('visible');
   } else { total=precios.pdisp*cant; ganancia=precios.pdisp*cant; res.classList.remove('visible'); }
@@ -1028,8 +1037,12 @@ function registrarVenta(){
   } else if(key==='5000|1000|20'){ total=precios.p20*cant; ganancia=(precios.p20-precios.c20)*cant; nombreVenta='Bidón 20L';
   } else if(key==='4000|800|10'){ total=precios.p10*cant; ganancia=(precios.p10-precios.c10)*cant; nombreVenta='Bidón 10L';
   } else if(key==='disp-fc|0|0'){
-    total=precios.pdisp*cant; ganancia=precios.pdisp*cant;
-    const desc20=bidDisp.bd20>0?bidDisp.bd20+' bid.20L':''; const desc10=bidDisp.bd10>0?bidDisp.bd10+' bid.10L':'';
+    const nb20r=bidDisp.bd20, nb10r=bidDisp.bd10;
+    const totalBidr = nb20r + nb10r;
+    const bidExtrar = Math.max(0, totalBidr - 4);
+    total = precios.pdisp + bidExtrar * precios.p20;
+    ganancia = precios.pdisp + bidExtrar * (precios.p20 - precios.c20);
+    const desc20=nb20r>0?nb20r+' bid.20L':''; const desc10=nb10r>0?nb10r+' bid.10L':'';
     nombreVenta='Dispenser frío/calor'+(desc20||desc10?' ('+[desc20,desc10].filter(Boolean).join('+')+')':'');
     // Actualizar bCasa
     if(cliSel){ const b=bCasa[cliSel.nombre]||{b20:0,b10:0}; b.b20+=bidDisp.bd20; b.b10+=bidDisp.bd10; bCasa[cliSel.nombre]=b; bCasaModificado.add(cliSel.nombre); }

@@ -205,7 +205,6 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .deuda-total-val { font-size: 14px; font-weight: 600; color: #185FA5; }
 </style>
 
-<div id="status-debug" style="position:fixed;top:0;left:0;right:0;background:#185FA5;color:#fff;font-size:11px;padding:4px 8px;z-index:99999;display:block;"></div>
 <div class="app" id="app-body">
   <div class="topbar">
     <div>
@@ -296,7 +295,6 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
           <select id="prod-sel" onchange="calcTotal(); actualizarDev(); toggleBidDisp();">
             <option value="5000|1000|20">Bidón 20L — $5.000</option>
             <option value="4000|800|10">Bidón 10L — $4.000</option>
-            <option value="25000|0|0">Alquiler dispenser — $25.000</option>
             <option value="disp-fc|0|0">Dispenser frío/calor + bidones</option>
             <option value="devdisp|0|0">Devolución de dispenser</option>
           </select>
@@ -392,7 +390,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
       <input class="search-bar" type="text" placeholder="Buscar cliente o localidad..." oninput="renderClientes(this.value)" style="margin-bottom:0;flex:1;" />
       <button onclick="recargarDesdeSheets()" style="background:#185FA5;color:#fff;border:none;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">↻ Sheets</button>
-      <button onclick="debugBCasa()" style="background:#8e8e93;color:#fff;border:none;border-radius:10px;padding:9px 10px;font-size:12px;cursor:pointer;">🔍</button>
+
     </div>
     <div id="clientes-lista"></div>
   </div>
@@ -534,7 +532,6 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
           <select id="ped-prod">
             <option value="5000|1000|20">Bidón 20L</option>
             <option value="4000|800|10">Bidón 10L</option>
-            <option value="25000|0|0">Alquiler dispenser</option>
             <option value="disp-fc|0|0">Dispenser frío/calor + bidones</option>
           </select>
         </div>
@@ -637,26 +634,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
       <input type="text" style="font-size:16px;" id="script-url" style="width:100%;padding:9px 11px;border:1px solid #e5e5ea;border-radius:8px;font-size:12px;color:#000;background:#fff;margin-bottom:6px;" placeholder="https://script.google.com/macros/s/..." oninput="guardarUrl()"/>
       <div id="url-estado" style="font-size:12px;display:none;margin-bottom:4px;"></div>
     </div>
-    <div class="card">
-      <div class="card-title">Sincronizar</div>
-      <button class="export-btn" onclick="sincronizar('todo')" style="background:#185FA5;color:#fff;border:none;font-weight:600;">🔄 Sincronizar todo ahora</button>
-      <button class="export-btn" onclick="sincronizar('ventas')">📋 Solo ventas</button>
-      <button class="export-btn" onclick="sincronizar('stock')">📦 Solo stock</button>
-      <button class="export-btn" onclick="sincronizar('clientes')">👥 Solo clientes</button>
-      <div id="sync-estado" style="font-size:13px;text-align:center;padding:8px 0;display:none;"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Cómo configurarlo</div>
-      <div style="font-size:13px;color:#8e8e93;line-height:1.9;">
-        <div>1. Abrí <strong style="color:#000;">script.google.com</strong></div>
-        <div>2. Nuevo proyecto → pegá el script descargado</div>
-        <div>3. <strong style="color:#000;">Implementar → Nueva implementación</strong></div>
-        <div>4. Tipo: <strong style="color:#000;">Aplicación web</strong></div>
-        <div>5. Ejecutar como: <strong style="color:#000;">Yo</strong></div>
-        <div>6. Acceso: <strong style="color:#000;">Cualquier persona</strong></div>
-        <div>7. Copiá la URL y pegala arriba</div>
-      </div>
-    </div>
+
   </div>
 </div>
 
@@ -754,7 +732,6 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
-    <div id="login-debug" style="font-size:11px;color:#8e8e93;margin-bottom:6px;"></div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
       <div id="login-selected-user" style="font-size:14px;font-weight:600;color:#185FA5;margin-bottom:12px;"></div>
@@ -952,7 +929,7 @@ function cambiarDev(id,delta){ dev[id]=Math.max(0,dev[id]+delta); document.getEl
 function actualizarDev(){
   const p=precios; const key=document.getElementById('prod-sel').value; const cant=parseInt(document.getElementById('cant').value)||1;
   const box=document.getElementById('devolucion-box'), res=document.getElementById('bidones-resumen');
-  if(key==='25000|0|0'||key==='devdisp|0|0'){box.style.display='none';if(key!=='devdisp|0|0')res.classList.remove('visible');return;}
+  if(key==='25000|0|0'||key==='devdisp|0|0'||key==='disp-fc|0|0'){box.style.display='none';if(key!=='devdisp|0|0')res.classList.remove('visible');return;}
   box.style.display='block';
   const parts=[`Lleva: ${cant} bid. ${key.includes('|20')?'20':'10'}L`];
   if(dev.dev20>0) parts.push(`Dev: ${dev.dev20} vacíos 20L`);
@@ -1043,9 +1020,20 @@ function registrarVenta(){
     total = precios.pdisp + bidExtrar * precios.p20;
     ganancia = precios.pdisp + bidExtrar * (precios.p20 - precios.c20);
     const desc20=nb20r>0?nb20r+' bid.20L':''; const desc10=nb10r>0?nb10r+' bid.10L':'';
-    nombreVenta='Dispenser frío/calor'+(desc20||desc10?' ('+[desc20,desc10].filter(Boolean).join('+')+')':'');
-    // Actualizar bCasa
-    if(cliSel){ const b=bCasa[cliSel.nombre]||{b20:0,b10:0}; b.b20+=bidDisp.bd20; b.b10+=bidDisp.bd10; bCasa[cliSel.nombre]=b; bCasaModificado.add(cliSel.nombre); }
+    const tieneDispYa = cliSel && tieneDispenser(cliSel.nombre);
+    nombreVenta = tieneDispYa
+      ? 'Alquiler dispenser (frío/calor)'+(desc20||desc10?' + '+[desc20,desc10].filter(Boolean).join('+'):'')
+      : 'Entrega dispenser (frío/calor)'+(desc20||desc10?' + '+[desc20,desc10].filter(Boolean).join('+'):'');
+    // Si el cliente no tiene dispenser, agregarlo a la lista
+    if(cliSel && !tieneDispYa && !CLIENTES_DISPENSER_RESERVADO.has(cliSel.nombre)) {
+      CLIENTES_DISPENSER.add(cliSel.nombre);
+      // También inicializar deuda de abono
+      deudas[cliSel.nombre] = 0; // ya pagó con esta venta
+    }
+    // Actualizar bCasa con los bidones entregados
+    if(cliSel){ const b=bCasa[cliSel.nombre]||{b20:0,b10:0}; b.b20+=nb20r; b.b10+=nb10r; bCasa[cliSel.nombre]=b; bCasaModificado.add(cliSel.nombre); }
+    // Registrar bidones bonificados en dispenserMes
+    if(cliSel){ const mes=getMesActual(),n=cliSel.nombre; if(!dispenserMes[n]||dispenserMes[n].mes!==mes) dispenserMes[n]={mes,cant:0}; dispenserMes[n].cant+=totalBidr; }
     bidDisp.bd20=0; bidDisp.bd10=0;
     document.getElementById('bd20').textContent='0'; document.getElementById('bd10').textContent='0';
   } else if(key==='devdisp|0|0'){ total=0; ganancia=0; nombreVenta='Devol. dispenser';
@@ -1350,23 +1338,15 @@ async function finalizarSetup() {
   }
 }
 
-
-
 function resetearDispositivo() {
   if (!confirm('¿Borrar todos los datos locales de este dispositivo? Los datos en Sheets no se modifican.')) return;
   // Guardar solo la URL del script
   const url = localStorage.getItem('scriptUrl') || '';
   localStorage.clear();
   // Mostrar setup para reconfigurar
-  document.getElementById('setup-url').value = url;
-  document.getElementById('setup-msg').style.display = 'none';
-  document.getElementById('setup-overlay').style.display = 'flex';
-}
-
-function mostrarSetup() {
-  document.getElementById('setup-url').value = localStorage.getItem('scriptUrl') || '';
-  document.getElementById('setup-msg').style.display = 'none';
-  document.getElementById('setup-overlay').style.display = 'flex';
+  // Recargar página para que pida la URL de nuevo
+  localStorage.removeItem('scriptUrl');
+  location.reload();
 }
 
 function mostrarLogin() {
@@ -1391,9 +1371,7 @@ function cargarUsuarios(){
 function guardarUsuarios(u){ localStorage.setItem('riusUsers',JSON.stringify(u)); }
 function renderLoginUsuarios(){
   const u = cargarUsuarios();
-  const dbg = document.getElementById('login-debug');
   const sel = document.getElementById('login-user-sel');
-  if(dbg) dbg.textContent = 'Usuarios: ' + u.length + ' | ' + u.map(x=>x.nombre).join(', ');
   if(!sel) return;
   const rolColors = {admin:'#185FA5', gerente:'#854F0B', repartidor:'#3B6D11'};
   const rolLabels = {admin:'God', gerente:'Gerente', repartidor:'Repartidor'};
@@ -1412,7 +1390,6 @@ function renderLoginUsuarios(){
     sel.appendChild(btn);
   });
 }
-
 
 function seleccionarLoginUsuario(n){
   n = n.replace(/&#39;/g, "'");
@@ -1436,7 +1413,6 @@ async function intentarLogin(){
     // Mostrar app PRIMERO antes de cualquier otra cosa
     mostrarApp();
     aplicarPermisos();
-  document.getElementById("status-debug").textContent = "3-mostrarApp llamado";
     // Cargar todos los datos desde Sheets al iniciar sesión
     const url = localStorage.getItem('scriptUrl')||'';
     if (url && url.startsWith('https://script.google.com')) {
@@ -1451,7 +1427,6 @@ async function intentarLogin(){
     calcularStock(); calcTotal(); actualizarDev(); actualizarResumen(); renderPedidos();
     iniciarAutoRecarga();
     showScreen('inicio');
-  document.getElementById("status-debug").textContent = "5-antes showScreen inicio";
   }
   else{ document.getElementById('login-error').style.display='block'; document.getElementById('login-pass').value=''; document.getElementById('login-pass').focus(); }
 }
@@ -1464,7 +1439,7 @@ function agregarUsuario(){
   us.push({nombre:n,pass:p,rol}); guardarUsuarios(us);
   sincUsuariosSheets();
   renderLoginUsuarios();
-  document.getElementById('nuevo-user-nombre').value=''; document.getElementById('nuevo-user-pass').value=''; renderUsuarios();
+  document.getElementById('nuevo-user-nombre').value=''; document.getElementById('nuevo-user-pass').value=''; renderUsuariosConRol();
 }
 function eliminarUsuario(n){
   if(n===usuarioActual){alert('No podés eliminarte a vos mismo.');return;}
@@ -1487,11 +1462,6 @@ function confirmarEliminarUsuario(){
   renderUsuariosConRol();
   renderLoginUsuarios();
 }
-function renderUsuarios(){
-  const us=cargarUsuarios();
-  document.getElementById('usuarios-lista').innerHTML=us.map(u=>`<div class="user-card"><div class="user-info"><div class="user-avatar">${u.nombre.charAt(0).toUpperCase()}</div><div><div class="user-name">${u.nombre}${u.nombre===usuarioActual?' <span style="font-size:11px;color:#3B6D11;">● activo</span>':''}</div></div></div>${u.nombre!==usuarioActual?`<button class="user-del" onclick="eliminarUsuario('${u.nombre.replace(/'/g,"\\'")}')">Eliminar</button>`:''}</div>`).join('');
-}
-
 // ---- PEDIDOS ----
 let pedidos = [];
 let cliSelPedido = null;
@@ -1570,29 +1540,43 @@ function entregarPedido(id) {
   const p = pedidos.find(x => x.id === id);
   if(!p) return;
   pedidoEnEntrega = id;
-  // Navegar a venta y pre-cargar los datos del pedido
+
+  // Navegar a venta (esto resetea el form)
   showScreen('venta');
-  // Seleccionar cliente
+
+  // Seleccionar cliente DESPUÉS de showScreen
   const cli = CLIENTES.find(c => c.nombre === p.cliente);
   if(cli) {
     selCli(p.cliente);
   } else {
-    // Cliente no está en la lista base, crearlo temporalmente
     cliSel = { nombre: p.cliente, localidad:'', direccion:'', telefono: p.telefono||'' };
     document.getElementById('cli-badge').classList.add('on');
     document.getElementById('badge-nombre').textContent = p.cliente;
-    document.getElementById('badge-dir').textContent = '';
+    document.getElementById('badge-dir').textContent = p.telefono||'';
     document.getElementById('badge-bid').textContent = '';
   }
-  // Seleccionar producto
-  document.getElementById('prod-sel').value = p.prodKey;
-  // Seleccionar cantidad
+
+  // Seleccionar producto y cantidad
+  const prodSel = document.getElementById('prod-sel');
+  prodSel.value = p.prodKey;
   document.getElementById('cant').value = p.cant;
   document.getElementById('cant-display').textContent = p.cant;
-  // Mostrar aviso de pedido
+
+  // Si es disp-fc, mostrar el panel de bidones
+  if (p.prodKey === 'disp-fc|0|0') {
+    toggleBidDisp();
+    // Pre-cargar cantidad en bidones 20L por defecto
+    bidDisp.bd20 = p.cant;
+    bidDisp.bd10 = 0;
+    document.getElementById('bd20').textContent = p.cant;
+    document.getElementById('bd10').textContent = '0';
+  }
+
+  // Mostrar aviso del pedido
   const res = document.getElementById('bidones-resumen');
   res.textContent = '📋 Pedido del ' + new Date(p.fecha+'T12:00:00').toLocaleDateString('es-AR') + (p.nota ? ' · ' + p.nota : '');
   res.classList.add('visible');
+
   calcTotal();
   actualizarDev();
 }
@@ -1796,20 +1780,7 @@ function guardarUrl(){
   if(url.startsWith('https://script.google.com')){el.style.display='block';el.style.color='#3B6D11';el.textContent='✓ URL guardada';}
   else if(url.length>0){el.style.display='block';el.style.color='#B42318';el.textContent='⚠ URL no válida';}
   else el.style.display='none';
-}
-async function sincronizar(tipo){
-  const url=document.getElementById('script-url').value.trim()||localStorage.getItem('scriptUrl')||'';
-  const estado=document.getElementById('sync-estado');
-  if(!url||!url.startsWith('https://script.google.com')){estado.style.display='block';estado.style.color='#B42318';estado.textContent='⚠ Pegá la URL del script';return;}
-  estado.style.display='block';estado.style.color='#185FA5';estado.textContent='⏳ Sincronizando...';
-  const cData=bCasaModificado.size>0
-    ? CLIENTES.filter(c=>bCasaModificado.has(c.nombre)).map(c=>({...c,b20:bCasa[c.nombre]?.b20||0,b10:bCasa[c.nombre]?.b10||0}))
-    : [];
-  const payload={tipo:'todo',ventas,stock,clientes:cData,deudas,gastos,pedidos,dispensers:buildDispensersPayload()};
-  try{const res=await fetch(url,{method:'POST',body:JSON.stringify(payload)});const json=await res.json();if(json.ok){estado.style.color='#3B6D11';estado.textContent='✓ Sincronizado';}else throw new Error(json.error);}
-  catch(err){estado.style.color='#B42318';estado.textContent='✗ Error: '+err.message;}
-}
-async function cargarDesdeSheets(url){
+}async function cargarDesdeSheets(url){
   try{
     const res=await fetch(url+'?accion=leer'); const json=await res.json();
     if(!json.ok||!json.datos) return false; const d=json.datos;
@@ -1854,33 +1825,6 @@ async function cargarDesdeSheets(url){
     bCasaModificado.clear();
     return true;
   }catch(e){ console.error('Error cargando Sheets:', e); return false; }
-}
-
-async function debugBCasa() {
-  const lista = document.getElementById('clientes-lista');
-  const url = localStorage.getItem('scriptUrl')||'';
-  if(!url) { lista.innerHTML='<div style="color:red;padding:10px;">No hay URL configurada en ⚙️</div>'; return; }
-  lista.innerHTML='<div style="padding:10px;color:#185FA5;">⏳ Consultando Sheets...</div>';
-  try {
-    const res = await fetch(url + '?accion=leer');
-    const json = await res.json();
-    if(!json.ok || !json.datos) {
-      lista.innerHTML='<div style="color:red;padding:10px;">Error Sheets: '+JSON.stringify(json)+'</div>';
-      return;
-    }
-    const clientes = json.datos.clientes || [];
-    const conBidones = clientes.filter(c => (Number(c.b20)||0)>0 || (Number(c.b10)||0)>0);
-    lista.innerHTML = '<div style="padding:10px;font-size:13px;">'
-      + '<b>Total clientes en Sheets: '+clientes.length+'</b><br>'
-      + '<b>Con bidones: '+conBidones.length+'</b><br><br>'
-      + 'Primeros 5 en Sheets:<br>'
-      + clientes.slice(0,5).map(c=>'• '+c.nombre+' — 20L:'+c.b20+' 10L:'+c.b10).join('<br>')
-      + '<br><br>Con bidones:<br>'
-      + (conBidones.length ? conBidones.slice(0,10).map(c=>'• '+c.nombre+' — 20L:'+c.b20+' 10L:'+c.b10).join('<br>') : 'ninguno')
-      + '</div>';
-  } catch(e) {
-    lista.innerHTML='<div style="color:red;padding:10px;">Error: '+e.message+'</div>';
-  }
 }
 
 async function recargarDesdeSheets() {
@@ -1991,14 +1935,9 @@ window.addEventListener('load',async()=>{
     }
   }
   } // fin else (tiene URL)
-  // Asegurar que el login se muestre correctamente después de todo
+  // Asegurar login si no hay sesión
   setTimeout(() => {
-    if (!usuarioActual) {
-      ocultarApp();
-      renderLoginUsuarios();
-      const dbg = document.getElementById('login-debug');
-      if(dbg) dbg.textContent = 'Usuarios: ' + cargarUsuarios().length;
-    }
+    if (!usuarioActual) { ocultarApp(); renderLoginUsuarios(); }
   }, 300);
 
   if(savedUrl&&savedUrl.startsWith('https://script.google.com')){

@@ -1306,7 +1306,7 @@ async function sincUsuariosSheets() {
   if (!url || !url.startsWith('https://script.google.com')) return;
   const us = cargarUsuarios(); // incluye pass y rol
   try {
-    fetch(url, { method: 'POST', body: JSON.stringify({ tipo: 'usuarios', usuarios: us }) });
+    fetch(url, { method: 'POST', headers: {'Content-Type': 'text/plain'}, body: JSON.stringify({ tipo: 'usuarios', usuarios: us }) });
   } catch(e) {}
 }
 
@@ -1766,7 +1766,7 @@ function sincAuto(){
       : [];
     const payload={tipo:'todo',ventas,stock,clientes:cData,deudas,gastos,pedidos,dispensers:buildDispensersPayload()};
     try{
-      const res=await fetch(url,{method:'POST',body:JSON.stringify(payload)});
+      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
       const json=await res.json();
       if(json.ok){if(ind){ind.style.background='#E1F5EE';ind.style.color='#0F6E56';ind.textContent='✓ Sheets OK';} setTimeout(()=>{if(ind){ind.style.background='#EAF3DE';ind.style.color='#3B6D11';ind.textContent='En línea';}},3000);}
       else throw new Error();
@@ -1952,6 +1952,7 @@ async function resetearTodo() {
 
       await fetch(url, {
         method: 'POST',
+        headers: {'Content-Type': 'text/plain'},
         body: JSON.stringify({
           tipo: 'todo',
           ventas: [],

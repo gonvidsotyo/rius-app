@@ -841,6 +841,17 @@ function calcularDispenser(n,cant){ const m=getMesActual(); const ya=getBidonesD
 
 // ---- NAV ----
 function showScreen(id){
+  // Block access if not logged in
+  if (!usuarioActual) {
+    mostrarLogin();
+    return;
+  }
+  // Block access to screens not permitted for this role
+  const permitidas = PERMISOS[getRol()] || PERMISOS.repartidor;
+  if (!permitidas.includes(id)) {
+    showScreen('inicio');
+    return;
+  }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -1868,20 +1879,26 @@ window.addEventListener('load',async()=>{
   if(!hayLocal) CLIENTES_DISPENSER.forEach(n=>{deudas[n]=25000;});
   calcularStock(); calcTotal(); actualizarDev(); actualizarResumen();
   iniciarAutoRecarga();
-  // Si no hay URL configurada → mostrar setup (dispositivo nuevo o sin configurar)
-  const savedUrlCheck = localStorage.getItem('scriptUrl');
+  // Si no hay URL configurada → mostrar setup
+  let savedUrlCheck;
+  try { savedUrlCheck = localStorage.getItem('scriptUrl'); } catch(e) { savedUrlCheck = null; }
+  
   if (!savedUrlCheck) {
     document.getElementById('setup-overlay').style.display = 'flex';
     document.getElementById('login-overlay').style.display = 'none';
   } else {
-    // Tiene URL → verificar sesión guardada
-    renderLoginUsuarios();
-    const sesion = localStorage.getItem('riusSession');
-    if (sesion && cargarUsuarios().find(u => u.nombre === sesion)) {
-      usuarioActual = sesion;
+    // Verificar sesión guardada
+    let sesion = null;
+    try { sesion = localStorage.getItem('riusSession'); } catch(e) {}
+    const userMatch = sesion ? cargarUsuarios().find(u => u.nombre === sesion) : null;
+    if (userMatch) {
+      usuarioActual = userMatch.nombre;
       document.getElementById('login-overlay').style.display = 'none';
       aplicarPermisos();
+      showScreen('inicio');
     } else {
+      // Sin sesión válida → siempre mostrar login
+      usuarioActual = null;
       mostrarLogin();
     }
   }

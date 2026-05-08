@@ -1448,6 +1448,39 @@ function renderPedidos() {
   }).join('');
 }
 
+// ---- SYNC DISPENSERS ----
+function buildDispensersPayload() {
+  const mes = getMesActual();
+
+  // Clientes con dispenser entregado
+  const clientesDisp = [...CLIENTES_DISPENSER].map(nombre => {
+    const cli = CLIENTES.find(c => c.nombre === nombre) || { nombre, direccion:'', telefono:'' };
+    const bidonesEsteMes = dispenserMes[nombre]?.mes === mes ? (dispenserMes[nombre]?.cant || 0) : 0;
+    return {
+      nombre,
+      direccion: cli.direccion || '',
+      telefono: cli.telefono || '',
+      pagado: (deudas[nombre] || 0) === 0,
+      deuda: deudas[nombre] || 0,
+      bidonesEsteMes
+    };
+  }).sort((a,b) => a.nombre.localeCompare(b.nombre));
+
+  // Reservados
+  const reservados = [...CLIENTES_DISPENSER_RESERVADO].map(nombre => {
+    const cli = CLIENTES.find(c => c.nombre === nombre) || { nombre, direccion:'', telefono:'' };
+    return { nombre, direccion: cli.direccion||'', telefono: cli.telefono||'' };
+  });
+
+  return {
+    totalComprados: 64,
+    totalEntregados: CLIENTES_DISPENSER.size,
+    totalReservados: CLIENTES_DISPENSER_RESERVADO.size,
+    clientes: clientesDisp,
+    reservados
+  };
+}
+
 // ---- AUTO-RECARGA CADA 5 MINUTOS ----
 let autoReloadTimer = null;
 
@@ -1513,7 +1546,7 @@ function sincAuto(){
     const cData=bCasaModificado.size>0
       ? CLIENTES.filter(c=>bCasaModificado.has(c.nombre)).map(c=>({...c,b20:bCasa[c.nombre]?.b20||0,b10:bCasa[c.nombre]?.b10||0}))
       : [];
-    const payload={tipo:'todo',ventas,stock,clientes:cData,deudas,gastos,pedidos};
+    const payload={tipo:'todo',ventas,stock,clientes:cData,deudas,gastos,pedidos,dispensers:buildDispensersPayload()};
     try{
       const res=await fetch(url,{method:'POST',body:JSON.stringify(payload)});
       const json=await res.json();
@@ -1538,7 +1571,7 @@ async function sincronizar(tipo){
   const cData=bCasaModificado.size>0
     ? CLIENTES.filter(c=>bCasaModificado.has(c.nombre)).map(c=>({...c,b20:bCasa[c.nombre]?.b20||0,b10:bCasa[c.nombre]?.b10||0}))
     : [];
-  const payload={tipo:'todo',ventas,stock,clientes:cData,deudas,gastos,pedidos};
+  const payload={tipo:'todo',ventas,stock,clientes:cData,deudas,gastos,pedidos,dispensers:buildDispensersPayload()};
   try{const res=await fetch(url,{method:'POST',body:JSON.stringify(payload)});const json=await res.json();if(json.ok){estado.style.color='#3B6D11';estado.textContent='✓ Sincronizado';}else throw new Error(json.error);}
   catch(err){estado.style.color='#B42318';estado.textContent='✗ Error: '+err.message;}
 }

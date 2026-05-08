@@ -959,8 +959,6 @@ function chgCant(delta){ const inp=document.getElementById('cant'),disp=document
 function calcTotal(){
   const key=document.getElementById('prod-sel').value; const cant=parseInt(document.getElementById('cant').value)||1;
   const res=document.getElementById('bidones-resumen');
-  // Aplicar monto manual si está activo
-  total = getMontoFinal(total);
   const pagarDeuda=document.getElementById('pagar-deuda-check')?.checked&&pagoActual!=='nopago';
   const deudaCli=cliSel?getDeuda(cliSel.nombre):0;
   const tcdr=document.getElementById('total-con-deuda-row'), tcde=document.getElementById('total-con-deuda');
@@ -994,6 +992,10 @@ function calcTotal(){
     res.textContent=msg; res.classList.add('visible');
   } else if(key==='devdisp|0|0'){ total=0; ganancia=0; res.textContent='♻️ Devolver dispenser — sin costo, se actualiza stock'; res.classList.add('visible');
   } else { total=precios.pdisp*cant; ganancia=precios.pdisp*cant; res.classList.remove('visible'); }
+  // Si hay monto manual activo, sobreescribir
+  if (typeof montoManualActivo !== 'undefined' && montoManualActivo) {
+    total = parseInt(document.getElementById('monto-manual')?.value) || total;
+  }
   document.getElementById('total-venta').textContent=fmt(total);
   document.getElementById('gan-venta').textContent=fmt(ganancia);
   if(pagarDeuda&&deudaCli>0){tcdr.style.display='flex';tcde.textContent=fmt(total+deudaCli)+' total';}

@@ -1322,7 +1322,7 @@ async function finalizarSetup() {
   msg.style.display='block'; msg.style.color='#185FA5'; msg.textContent='Conectando con Sheets...';
   try {
     localStorage.setItem('scriptUrl', url);
-    const res = await fetch(url + '?accion=leer', {redirect: 'follow'});
+    const res = await fetch(url + '?accion=leer');
     const json = await res.json();
     if (!json.ok || !json.datos) throw new Error('Sin datos');
     if (json.datos.usuarios && json.datos.usuarios.length) {
@@ -1782,7 +1782,7 @@ function guardarUrl(){
   else el.style.display='none';
 }async function cargarDesdeSheets(url){
   try{
-    const res=await fetch(url+'?accion=leer', {redirect:'follow'}); const json=await res.json();
+    const res=await fetch(url+'?accion=leer'); const json=await res.json();
     if(!json.ok||!json.datos) return false; const d=json.datos;
     if(d.ventas&&d.ventas.length) ventas=d.ventas.map(v=>({...v,hora:v.hora?new Date(v.hora):new Date(),dev20:v.dev20||0,dev10:v.dev10||0,nuevaDeuda:0,deudaSaldada:0}));
     if(d.pedidos&&d.pedidos.length) pedidos=d.pedidos;
@@ -1880,23 +1880,36 @@ window.addEventListener('load',async()=>{
     document.getElementById('login-overlay').style.display = 'none';
     // No continuar
   } else {
+  // Tenemos URL — intentar cargar desde Sheets, pero no bloquear si falla
+  const ind = document.getElementById('sync-indicator');
+  if(ind){ ind.style.background='#FFF3CD'; ind.style.color='#854F0B'; ind.textContent='Cargando...'; }
 
-  // Tenemos URL — cargar usuarios desde Sheets primero
+  // Verificar sesión guardada primero
+  let sesion = null;
+  try { sesion = localStorage.getItem('riusSession'); } catch(e) {}
+  const userMatch = sesion ? cargarUsuarios().find(u => u.nombre === sesion) : null;
+
+  // Mostrar app o login según sesión, sin esperar a Sheets
+  if (userMatch) {
+    usuarioActual = userMatch.nombre;
+    document.getElementById('login-overlay').style.display = 'none';
+    aplicarPermisos();
+    mostrarApp();
+    calcularStock(); calcTotal(); actualizarDev(); actualizarResumen(); renderPedidos();
+  } else {
+    mostrarLogin();
+  }
+
+  // Cargar desde Sheets en background (no bloquea el acceso)
   try {
-    const ind = document.getElementById('sync-indicator');
-    if(ind){ ind.style.background='#FFF3CD'; ind.style.color='#854F0B'; ind.textContent='Cargando...'; }
-    const res = await fetch(savedUrlCheck + '?accion=leer', {redirect:'follow'});
+    const res = await fetch(savedUrlCheck + '?accion=leer');
     const json = await res.json();
-    if (json.ok && json.datos && json.datos.usuarios && json.datos.usuarios.length) {
-      guardarUsuarios(json.datos.usuarios);
-    }
-    // Cargar resto de datos si hay sesión guardada
-    let sesion = null;
-    try { sesion = localStorage.getItem('riusSession'); } catch(e) {}
-    const userMatch = sesion ? cargarUsuarios().find(u => u.nombre === sesion) : null;
-    if (userMatch) {
-      // Cargar todos los datos
-      if (json.ok && json.datos) {
+    if (json.ok && json.datos) {
+      if (json.datos.usuarios && json.datos.usuarios.length) {
+        guardarUsuarios(json.datos.usuarios);
+        renderLoginUsuarios();
+      }
+      if (userMatch) {
         const d = json.datos;
         if(d.ventas&&d.ventas.length) ventas=d.ventas.map(v=>({...v,hora:v.hora?new Date(v.hora):new Date(),dev20:v.dev20||0,dev10:v.dev10||0,nuevaDeuda:0,deudaSaldada:0}));
         if(d.pedidos&&d.pedidos.length) pedidos=d.pedidos;
@@ -1905,34 +1918,14 @@ window.addEventListener('load',async()=>{
         if(d.deudas&&Object.keys(d.deudas).length) Object.assign(deudas,d.deudas);
         if(d.stockInicial) Object.assign(stockInicial,d.stockInicial);
         bCasaModificado.clear();
+        guardarCacheStockInicial();
+        guardarEstado();
+        calcularStock(); calcTotal(); actualizarDev(); actualizarResumen(); renderPedidos();
       }
-      guardarEstado();
-      usuarioActual = userMatch.nombre;
-      document.getElementById('login-overlay').style.display = 'none';
-      aplicarPermisos();
-      mostrarApp();
-      calcularStock(); calcTotal(); actualizarDev(); actualizarResumen(); renderPedidos();
-      if(ind){ ind.style.background='#EAF3DE'; ind.style.color='#3B6D11'; ind.textContent='En linea'; }
-    } else {
-      // PASO 2: Hay URL, no hay sesión → mostrar login con usuarios de Sheets
-      if(ind){ ind.style.background='#EAF3DE'; ind.style.color='#3B6D11'; ind.textContent='En linea'; }
-      mostrarLogin();
+      if(ind){ ind.style.background='#EAF3DE'; ind.style.color='#3B6D11'; ind.textContent='En línea'; }
     }
   } catch(e) {
-    // Sin conexión — usar datos locales si hay sesión
-    let sesion = null;
-    try { sesion = localStorage.getItem('riusSession'); } catch(err) {}
-    const userMatch = sesion ? cargarUsuarios().find(u => u.nombre === sesion) : null;
-    if (userMatch) {
-      cargarEstado();
-      usuarioActual = userMatch.nombre;
-      document.getElementById('login-overlay').style.display = 'none';
-      aplicarPermisos();
-      mostrarApp();
-      calcularStock(); calcTotal(); actualizarDev(); actualizarResumen(); renderPedidos();
-    } else {
-      mostrarLogin();
-    }
+    if(ind){ ind.style.background='#EAF3DE'; ind.style.color='#3B6D11'; ind.textContent='Sin conexión'; }
   }
   } // fin else (tiene URL)
   // Asegurar login si no hay sesión

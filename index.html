@@ -1342,19 +1342,42 @@ function mostrarLogin() {
   document.getElementById('login-overlay').style.display='flex';
 }
 
-function cargarUsuarios(){ try{const r=localStorage.getItem('riusUsers');if(r)return JSON.parse(r);}catch(e){} return [{nombre:'Admin',pass:'admin1234',rol:'admin'}]; }
+function cargarUsuarios(){
+  try{
+    const r=localStorage.getItem('riusUsers');
+    if(r){
+      const us=JSON.parse(r);
+      // Migrar usuarios viejos sin campo rol
+      return us.map(u=>({...u, rol: u.rol||'admin'}));
+    }
+  }catch(e){}
+  return [{nombre:'Admin',pass:'admin1234',rol:'admin'}];
+}
 function guardarUsuarios(u){ localStorage.setItem('riusUsers',JSON.stringify(u)); }
 function renderLoginUsuarios(){
-  const u=cargarUsuarios();
-  const sel=document.getElementById('login-user-sel');
+  const u = cargarUsuarios();
+  const sel = document.getElementById('login-user-sel');
   if(!sel) return;
-  sel.innerHTML=u.map(u2=>{
-    const roleColor = u2.rol==='admin'?'#185FA5':u2.rol==='gerente'?'#854F0B':'#3B6D11';
-    const roleLabel = u2.rol==='admin'?'God':u2.rol==='gerente'?'Gerente':'Repartidor';
-    return '<button class="login-user-btn" onclick="seleccionarLoginUsuario(\'' + u2.nombre.replace(/'/g,"\'") + '\')"><div class="login-user-avatar" style="background:' + roleColor + '">' + u2.nombre.charAt(0).toUpperCase() + '</div><div><div style="font-weight:600;">' + u2.nombre + '</div><div style="font-size:11px;color:#8e8e93;">' + roleLabel + '</div></div></button>';
-  }).join('');
+  const rolColors = {admin:'#185FA5', gerente:'#854F0B', repartidor:'#3B6D11'};
+  const rolLabels = {admin:'God', gerente:'Gerente', repartidor:'Repartidor'};
+  let html = '';
+  u.forEach(u2 => {
+    const rol = u2.rol || 'admin';
+    const color = rolColors[rol] || '#185FA5';
+    const label = rolLabels[rol] || 'God';
+    const inicial = u2.nombre.charAt(0).toUpperCase();
+    const nombre = u2.nombre.replace(/'/g, "&#39;");
+    html += '<button class="login-user-btn" onclick="seleccionarLoginUsuario(&#39;' + nombre + '&#39;)">' +
+      '<div class="login-user-avatar" style="background:' + color + '">' + inicial + '</div>' +
+      '<div><div style="font-weight:600;font-size:15px;">' + u2.nombre + '</div>' +
+      '<div style="font-size:11px;color:#8e8e93;margin-top:2px;">' + label + '</div></div>' +
+      '</button>';
+  });
+  sel.innerHTML = html;
 }
+
 function seleccionarLoginUsuario(n){
+  n = n.replace(/&#39;/g, "'");
   usuarioPendiente=n;
   document.getElementById('login-user-sel').style.display='none';
   document.getElementById('login-pass-section').style.display='block';

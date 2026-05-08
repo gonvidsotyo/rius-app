@@ -1422,7 +1422,12 @@ function confirmarEliminarUsuario(){
   const pass=document.getElementById('modal-del-user-pass').value;
   const us=cargarUsuarios(), user=us.find(u=>u.nombre===usuarioAEliminar);
   if(!user||user.pass!==pass){ document.getElementById('modal-del-user-error').style.display='block'; document.getElementById('modal-del-user-pass').value=''; document.getElementById('modal-del-user-pass').focus(); return; }
-  guardarUsuarios(us.filter(u=>u.nombre!==usuarioAEliminar)); cerrarModalDelUser(); sincUsuariosSheets(); renderUsuariosConRol();
+  const usActualizados = us.filter(u=>u.nombre!==usuarioAEliminar);
+  guardarUsuarios(usActualizados);
+  cerrarModalDelUser();
+  sincUsuariosSheets();
+  renderUsuariosConRol();
+  renderLoginUsuarios();
 }
 function renderUsuarios(){
   const us=cargarUsuarios();

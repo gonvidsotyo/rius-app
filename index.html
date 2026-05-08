@@ -432,12 +432,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
             <button onclick="limpiarClientePedido()" style="background:none;border:none;cursor:pointer;font-size:16px;color:#3B6D11;">✕</button>
           </div>
         </div>
-        <!-- Monto estimado del pedido -->
-        <div id="ped-monto-row" style="display:none;background:#f0f7ff;border-radius:10px;padding:10px 12px;">
-          <div style="font-size:12px;color:#8e8e93;margin-bottom:2px;">Monto estimado</div>
-          <div id="ped-monto-val" style="font-size:20px;font-weight:600;color:#185FA5;">$0</div>
-          <div id="ped-monto-sub" style="font-size:11px;color:#8e8e93;margin-top:2px;"></div>
-        </div>
+
         <div>
           <label>Producto</label>
           <select id="ped-prod" onchange="calcMontoEstimadoPedido()">
@@ -455,6 +450,17 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
           </div>
           <input type="hidden" id="ped-cant" value="1" />
         </div>
+        <!-- Total pedido -->
+        <div id="ped-monto-row" style="display:none;">
+          <div class="total-row" style="border-top:0.5px solid #e5e5ea;padding-top:10px;">
+            <span class="total-label">Total estimado</span>
+            <span class="total-value" id="ped-monto-val">$0</span>
+          </div>
+          <div class="ganancia-row" style="padding-bottom:0;">
+            <span id="ped-monto-sub" style="color:#8e8e93;font-size:12px;"></span>
+          </div>
+        </div>
+
         <div>
           <label>Fecha de entrega</label>
           <input type="date" id="ped-fecha" style="width:100%;padding:9px 11px;border:1px solid #e5e5ea;border-radius:8px;font-size:14px;" />

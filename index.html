@@ -1419,6 +1419,8 @@ async function intentarLogin(){
     localStorage.setItem('riusSession',user.nombre);
     document.getElementById('login-overlay').style.display='none';
     document.getElementById('login-error').style.display='none';
+    // Mostrar app PRIMERO antes de cualquier otra cosa
+    mostrarApp();
     aplicarPermisos();
     // Cargar todos los datos desde Sheets al iniciar sesión
     const url = localStorage.getItem('scriptUrl')||'';
@@ -1433,7 +1435,6 @@ async function intentarLogin(){
     } else { cargarEstado(); }
     calcularStock(); calcTotal(); actualizarDev(); actualizarResumen(); renderPedidos();
     iniciarAutoRecarga();
-    mostrarApp();
     showScreen('inicio');
   }
   else{ document.getElementById('login-error').style.display='block'; document.getElementById('login-pass').value=''; document.getElementById('login-pass').focus(); }

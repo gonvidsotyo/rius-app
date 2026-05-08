@@ -736,7 +736,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 </div>
 
 <!-- SETUP PRIMERA VEZ -->
-<div class="login-overlay" id="setup-overlay" style="display:none;">
+<div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
@@ -1917,19 +1917,15 @@ window.addEventListener('load',async()=>{
   calcularStock(); calcTotal(); actualizarDev(); actualizarResumen();
   iniciarAutoRecarga();
   // ── FLUJO ESTRICTO DE 3 PASOS ──────────────────────────────
-  // 1. Sin URL → setup
-  // 2. Con URL pero sin sesión → cargar usuarios de Sheets → login
-  // 3. Con sesión válida → entrar
-
   let savedUrlCheck;
   try { savedUrlCheck = localStorage.getItem('scriptUrl'); } catch(e) { savedUrlCheck = null; }
 
   if (!savedUrlCheck) {
-    // PASO 1: Primera vez — pedir URL
+    // Sin URL — mantener setup visible (ya está visible por defecto en HTML)
     document.getElementById('setup-overlay').style.display = 'flex';
     document.getElementById('login-overlay').style.display = 'none';
-    return; // No cargar nada más
-  }
+    // No continuar
+  } else {
 
   // Tenemos URL — cargar usuarios desde Sheets primero
   try {
@@ -1984,6 +1980,7 @@ window.addEventListener('load',async()=>{
       mostrarLogin();
     }
   }
+  } // fin else (tiene URL)
   // Asegurar que el login se muestre correctamente después de todo
   setTimeout(() => {
     if (!usuarioActual) {

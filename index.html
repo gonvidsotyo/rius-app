@@ -205,6 +205,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .deuda-total-val { font-size: 14px; font-weight: 600; color: #185FA5; }
 </style>
 
+<div id="status-debug" style="position:fixed;top:0;left:0;right:0;background:#185FA5;color:#fff;font-size:11px;padding:4px 8px;z-index:99999;display:block;"></div>
 <div class="app" id="app-body">
   <div class="topbar">
     <div>
@@ -1422,6 +1423,7 @@ async function intentarLogin(){
     // Mostrar app PRIMERO antes de cualquier otra cosa
     mostrarApp();
     aplicarPermisos();
+  document.getElementById("status-debug").textContent = "3-mostrarApp llamado";
     // Cargar todos los datos desde Sheets al iniciar sesión
     const url = localStorage.getItem('scriptUrl')||'';
     if (url && url.startsWith('https://script.google.com')) {
@@ -1436,6 +1438,7 @@ async function intentarLogin(){
     calcularStock(); calcTotal(); actualizarDev(); actualizarResumen(); renderPedidos();
     iniciarAutoRecarga();
     showScreen('inicio');
+  document.getElementById("status-debug").textContent = "5-antes showScreen inicio";
   }
   else{ document.getElementById('login-error').style.display='block'; document.getElementById('login-pass').value=''; document.getElementById('login-pass').focus(); }
 }

@@ -1318,28 +1318,16 @@ async function finalizarSetup() {
   const msg = document.getElementById('setup-msg');
   if (!url || !url.startsWith('https://script.google.com')) {
     msg.style.display='block'; msg.style.color='#B42318';
-    msg.textContent='URL invalida. Debe empezar con https://script.google.com';
+    msg.textContent='URL invalida.';
     return;
   }
-  msg.style.display='block'; msg.style.color='#185FA5'; msg.textContent='Conectando con Sheets...';
-  try {
-    localStorage.setItem('scriptUrl', url);
-    const res = await fetch(url + '?accion=leer');
-    const json = await res.json();
-    if (!json.ok || !json.datos) throw new Error('Sin datos');
-    if (json.datos.usuarios && json.datos.usuarios.length) {
-      guardarUsuarios(json.datos.usuarios);
-    }
-    msg.style.color='#3B6D11'; msg.textContent='Usuarios cargados. Iniciá sesión.';
-    setTimeout(() => {
-      document.getElementById('setup-overlay').style.display='none';
-      mostrarLogin();
-    }, 800);
-  } catch(e) {
-    msg.style.color='#B42318';
-    msg.textContent='Error: ' + (e.message || 'No se pudo conectar') + ' — Probá abrir la URL+?accion=leer en el navegador';
-    console.error('Setup error:', e);
-  }
+  localStorage.setItem('scriptUrl', url);
+  msg.style.display='block'; msg.style.color='#3B6D11';
+  msg.textContent='URL guardada. Iniciá sesión.';
+  setTimeout(() => {
+    document.getElementById('setup-overlay').style.display='none';
+    mostrarLogin();
+  }, 800);
 }
 
 function resetearDispositivo() {

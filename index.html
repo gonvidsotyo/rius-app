@@ -1088,7 +1088,8 @@ function renderClientes(q){
     const btnStyle='flex:1;padding:10px 4px;font-size:12px;font-weight:600;border:none;border-right:1px solid #f2f2f7;background:none;cursor:pointer;';
     const btnWsp=hasTel?`<button data-tel="${telLimpio}" data-action="wsp" style="${btnStyle}color:#25D366;">💬 WSP</button>`:'';
     const btnMaps=hasDir?`<button data-dir="${encodeURIComponent([c.direccion,c.localidad].filter(Boolean).join(', '))}" data-action="maps" style="${btnStyle}color:#EA4335;">📍 Maps</button>`:'';
-    const btnEdit=`<button data-nombre="${encodeURIComponent(c.nombre)}" data-action="editar" style="${btnStyle}color:#185FA5;border-right:none;">✏️ Editar</button>`;
+    const btnEdit=`<button data-nombre="${encodeURIComponent(c.nombre)}" data-action="editar" style="${btnStyle}color:#185FA5;">✏️ Editar</button>`;
+    const btnDel=`<button data-nombre="${encodeURIComponent(c.nombre)}" data-action="eliminar" style="${btnStyle}color:#B42318;border-right:none;">🗑 Eliminar</button>`;
 
     const wrapper=document.createElement('div');
     wrapper.innerHTML=`<div style="background:#fff;border-radius:12px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden;">
@@ -1098,7 +1099,7 @@ function renderClientes(q){
         ${c.telefono?`<div style="font-size:13px;color:#8e8e93;margin-top:1px;">📞 ${c.telefono}</div>`:''}
         ${badgesHtml}${deudaHtml}
       </div>
-      <div style="display:flex;border-top:1px solid #f2f2f7;">${btnWsp}${btnMaps}${btnEdit}</div>
+      <div style="display:flex;border-top:1px solid #f2f2f7;">${btnWsp}${btnMaps}${btnEdit}${btnDel}</div>
     </div>`;
     lista.appendChild(wrapper.firstChild);
   });
@@ -1107,6 +1108,7 @@ function renderClientes(q){
     const btn=e.target.closest('button[data-action]');
     if(!btn) return;
     const action=btn.dataset.action;
+    const nombre=btn.dataset.nombre?decodeURIComponent(btn.dataset.nombre):'';
     if(action==='wsp'){
       const tel=btn.dataset.tel;
       const numF=tel.startsWith('54')?tel:'54'+(tel.startsWith('0')?tel.slice(1):tel);
@@ -1114,9 +1116,31 @@ function renderClientes(q){
     }else if(action==='maps'){
       window.open('https://www.google.com/maps/search/?api=1&query='+btn.dataset.dir,'_blank');
     }else if(action==='editar'){
-      abrirModalEditarCliente(decodeURIComponent(btn.dataset.nombre));
+      abrirModalEditarCliente(nombre);
+    }else if(action==='eliminar'){
+      eliminarCliente(nombre);
     }
   };
+}
+
+function eliminarCliente(nombre){
+  if(!confirm(`¿Eliminar a "${nombre}" de la lista de clientes?\n\nSus datos en Sheets también se borrarán.`)) return;
+  const idx=CLIENTES.findIndex(x=>x.nombre===nombre);
+  if(idx===-1) return;
+  CLIENTES.splice(idx,1);
+  CLIENTES_BASE_NOMBRES.delete(nombre);
+  CLIENTES_DISPENSER.delete(nombre);
+  CLIENTES_DISPENSER_RESERVADO.delete(nombre);
+  delete bCasa[nombre];
+  delete deudas[nombre];
+  // Sincronizar eliminación con Sheets
+  const url=localStorage.getItem('scriptUrl')||'';
+  if(url&&url.startsWith('https://script.google.com')){
+    fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({tipo:'eliminar-cliente',nombre})}).catch(()=>{});
+  }
+  guardarEstado();
+  renderClientes(document.querySelector('#clientes .search-bar')?.value||'');
 }
 
 function abrirModalEditarCliente(nombre){

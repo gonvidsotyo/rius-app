@@ -287,7 +287,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
       <input class="search-bar" type="text" placeholder="Buscar cliente o localidad..." oninput="renderClientes(this.value)" style="margin-bottom:0;flex:1;" />
       <button onclick="recargarDesdeSheets()" style="background:#185FA5;color:#fff;border:none;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">↻</button>
-      <button onclick="(function(){document.getElementById('m-nombre').value='';document.getElementById('m-dir').value='';document.getElementById('m-loc').value='';document.getElementById('m-tel').value='';modalNuevoClienteTarget='lista';document.getElementById('modal-nuevo-cliente').classList.add('visible');setTimeout(()=>document.getElementById('m-nombre').focus(),150);})()" style="background:#3B6D11;color:#fff;border:none;border-radius:10px;padding:9px 12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">+ Cliente</button>
+      <button onclick="abrirModalNuevoClienteDirecto()" style="background:#3B6D11;color:#fff;border:none;border-radius:10px;padding:9px 12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">+ Cliente</button>
     </div>
     <div id="clientes-lista"></div>
   </div>
@@ -1060,15 +1060,121 @@ function calcularStock(){
 
 // ---- CLIENTES ----
 function renderClientes(q){
+  const lista=document.getElementById('clientes-lista');
+  if(!lista) return;
+  lista.innerHTML='';
   const f=(q||'').toLowerCase();
-  const arr=f?CLIENTES.filter(c=>c.nombre.toLowerCase().includes(f)||c.localidad.toLowerCase().includes(f)):CLIENTES;
-  document.getElementById('clientes-lista').innerHTML=arr.map(c=>{
-    const b=bCasa[c.nombre]||{b20:0,b10:0};const deuda=getDeuda(c.nombre);
-    const b20h=b.b20>0?`<span class="bidge bidge-20">20L: ${b.b20}</span>`:`<span class="bidge bidge-zero">20L: 0</span>`;
-    const b10h=b.b10>0?`<span class="bidge bidge-10">10L: ${b.b10}</span>`:`<span class="bidge bidge-zero">10L: 0</span>`;
-    const deudaH=deuda>0?`<div style="font-size:12px;color:#B42318;margin-top:6px;font-weight:500;">⚠ Deuda: ${fmt(deuda)}</div>`:deuda<0?`<div style="font-size:12px;color:#3B6D11;margin-top:6px;font-weight:500;">✓ A favor: ${fmt(-deuda)}</div>`:'';
-    return `<div class="cli-card"><div style="padding:12px 14px;"><div style="font-size:15px;font-weight:700;color:#000;">${c.nombre}</div>${c.localidad||c.direccion?`<div style="font-size:13px;color:#8e8e93;margin-top:2px;">📍 ${[c.localidad,c.direccion].filter(Boolean).join(' · ')}</div>`:''} ${c.telefono?`<div style="font-size:13px;color:#8e8e93;">📞 ${c.telefono}</div>`:''}<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">${b20h}${b10h}</div>${deudaH}</div></div>`;
-  }).join('');
+  const arr=f?CLIENTES.filter(c=>c.nombre.toLowerCase().includes(f)||(c.localidad||'').toLowerCase().includes(f)):CLIENTES;
+  if(!arr.length){lista.innerHTML='<div style="font-size:13px;color:#aeaeb2;padding:12px 0;">No se encontraron clientes.</div>';return;}
+
+  arr.forEach(c=>{
+    const b=bCasa[c.nombre]||{b20:0,b10:0};
+    const deuda=getDeuda(c.nombre);
+    const esDisp=CLIENTES_DISPENSER.has(c.nombre);
+    const esRes=CLIENTES_DISPENSER_RESERVADO.has(c.nombre);
+    const telLimpio=(c.telefono||'').replace(/[^0-9]/g,'');
+    const hasTel=telLimpio.length>6;
+    const hasDir=!!(c.direccion&&c.direccion.trim().length>2)||!!(c.localidad&&c.localidad.trim().length>2);
+
+    let badgesHtml='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">';
+    badgesHtml+=b.b20>0?`<span class="bidge bidge-20">20L: ${b.b20}</span>`:`<span class="bidge bidge-zero">20L: 0</span>`;
+    badgesHtml+=b.b10>0?`<span class="bidge bidge-10">10L: ${b.b10}</span>`:`<span class="bidge bidge-zero">10L: 0</span>`;
+    if(esDisp) badgesHtml+=`<span class="bidge" style="background:#E1F5EE;color:#0F6E56;">🧊 Dispenser</span>`;
+    else if(esRes) badgesHtml+=`<span class="bidge" style="background:#FFF3CD;color:#854F0B;">⏳ Reservado</span>`;
+    badgesHtml+='</div>';
+
+    const deudaHtml=deuda>0?`<div style="font-size:12px;color:#B42318;margin-top:6px;font-weight:500;">⚠ Deuda: ${fmt(deuda)}</div>`:deuda<0?`<div style="font-size:12px;color:#3B6D11;margin-top:6px;font-weight:500;">✓ A favor: ${fmt(-deuda)}</div>`:'';
+
+    const btnStyle='flex:1;padding:10px 4px;font-size:12px;font-weight:600;border:none;border-right:1px solid #f2f2f7;background:none;cursor:pointer;';
+    const btnWsp=hasTel?`<button data-tel="${telLimpio}" data-action="wsp" style="${btnStyle}color:#25D366;">💬 WSP</button>`:'';
+    const btnMaps=hasDir?`<button data-dir="${encodeURIComponent([c.direccion,c.localidad].filter(Boolean).join(', '))}" data-action="maps" style="${btnStyle}color:#EA4335;">📍 Maps</button>`:'';
+    const btnEdit=`<button data-nombre="${encodeURIComponent(c.nombre)}" data-action="editar" style="${btnStyle}color:#185FA5;border-right:none;">✏️ Editar</button>`;
+
+    const wrapper=document.createElement('div');
+    wrapper.innerHTML=`<div style="background:#fff;border-radius:12px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden;">
+      <div style="padding:12px 14px 10px;">
+        <div style="font-size:15px;font-weight:700;color:#000;">${c.nombre}</div>
+        ${c.localidad||c.direccion?`<div style="font-size:13px;color:#8e8e93;margin-top:3px;">📍 ${[c.localidad,c.direccion].filter(Boolean).join(' · ')}</div>`:''}
+        ${c.telefono?`<div style="font-size:13px;color:#8e8e93;margin-top:1px;">📞 ${c.telefono}</div>`:''}
+        ${badgesHtml}${deudaHtml}
+      </div>
+      <div style="display:flex;border-top:1px solid #f2f2f7;">${btnWsp}${btnMaps}${btnEdit}</div>
+    </div>`;
+    lista.appendChild(wrapper.firstChild);
+  });
+
+  lista.onclick=function(e){
+    const btn=e.target.closest('button[data-action]');
+    if(!btn) return;
+    const action=btn.dataset.action;
+    if(action==='wsp'){
+      const tel=btn.dataset.tel;
+      const numF=tel.startsWith('54')?tel:'54'+(tel.startsWith('0')?tel.slice(1):tel);
+      window.open('https://wa.me/'+numF,'_blank');
+    }else if(action==='maps'){
+      window.open('https://www.google.com/maps/search/?api=1&query='+btn.dataset.dir,'_blank');
+    }else if(action==='editar'){
+      abrirModalEditarCliente(decodeURIComponent(btn.dataset.nombre));
+    }
+  };
+}
+
+function abrirModalEditarCliente(nombre){
+  const c=CLIENTES.find(x=>x.nombre===nombre);
+  if(!c) return;
+  document.getElementById('edit-cli-original').value=nombre;
+  document.getElementById('edit-cli-titulo').textContent='Editar · '+nombre;
+  document.getElementById('edit-cli-nombre2').value=c.nombre;
+  document.getElementById('edit-cli-dir2').value=c.direccion||'';
+  document.getElementById('edit-cli-loc2').value=c.localidad||'';
+  document.getElementById('edit-cli-tel2').value=c.telefono||'';
+  poblarSelectLocalidades2();
+  const sel2=document.getElementById('m-loc2-sel');
+  if(sel2&&c.localidad){
+    const match=localidades.find(l=>l.toLowerCase()===c.localidad.toLowerCase());
+    if(match) sel2.value=match;
+  }
+  document.getElementById('modal-editar-cliente').classList.add('visible');
+  setTimeout(()=>document.getElementById('edit-cli-nombre2').focus(),150);
+}
+function cerrarModalEditarCliente(){ document.getElementById('modal-editar-cliente').classList.remove('visible'); }
+function guardarEdicionClienteLista(){
+  const original=document.getElementById('edit-cli-original').value;
+  const c=CLIENTES.find(x=>x.nombre===original);if(!c)return;
+  const nuevoNombre=document.getElementById('edit-cli-nombre2').value.trim();if(!nuevoNombre)return;
+  const dir=document.getElementById('edit-cli-dir2').value.trim();
+  const loc=document.getElementById('edit-cli-loc2').value.trim();
+  const tel=document.getElementById('edit-cli-tel2').value.trim();
+  c.nombre=nuevoNombre;c.direccion=dir;c.localidad=loc;c.telefono=tel;
+  if(nuevoNombre!==original){
+    bCasa[nuevoNombre]=bCasa[original]||{b20:0,b10:0};delete bCasa[original];
+    deudas[nuevoNombre]=deudas[original]||0;delete deudas[original];
+    if(CLIENTES_DISPENSER.has(original)){CLIENTES_DISPENSER.delete(original);CLIENTES_DISPENSER.add(nuevoNombre);}
+    if(CLIENTES_DISPENSER_RESERVADO.has(original)){CLIENTES_DISPENSER_RESERVADO.delete(original);CLIENTES_DISPENSER_RESERVADO.add(nuevoNombre);}
+    CLIENTES_BASE_NOMBRES.delete(original);CLIENTES_BASE_NOMBRES.add(nuevoNombre);
+    bCasaModificado.add(nuevoNombre);
+  }else{
+    bCasaModificado.add(nuevoNombre);
+  }
+  cerrarModalEditarCliente();
+  sincronizarEdicionCliente(original,c);
+  guardarEstado();
+  renderClientes(document.querySelector('#clientes .search-bar')?.value||'');
+}
+async function sincronizarEdicionCliente(nombreOriginal,clienteActualizado){
+  const url=localStorage.getItem('scriptUrl')||'';if(!url||!url.startsWith('https://script.google.com'))return;
+  try{await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({tipo:'editar-cliente',nombreOriginal,cliente:clienteActualizado})});}catch(e){}
+}
+function abrirModalNuevoClienteDirecto(){
+  document.getElementById('m-nombre').value='';
+  document.getElementById('m-dir').value='';
+  document.getElementById('m-loc').value='';
+  document.getElementById('m-tel').value='';
+  poblarSelectLocalidades();
+  const sel=document.getElementById('m-loc-sel');if(sel)sel.value='';
+  modalNuevoClienteTarget='lista';
+  document.getElementById('modal-nuevo-cliente').classList.add('visible');
+  setTimeout(()=>document.getElementById('m-nombre').focus(),150);
 }
 
 // ---- LOCALIDADES ----

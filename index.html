@@ -696,7 +696,8 @@ function selCli(nombre){
   const b=bCasa[nombre]||{b20:0,b10:0};const esDisp=tieneDispenser(nombre),esRes=CLIENTES_DISPENSER_RESERVADO.has(nombre);
   const ya=esDisp?getBidonesDispenserMes(nombre):0;const dispInfo=esDisp?` · 🧊 ${ya}/4 este mes`:esRes?' · ⏳ Reservado':'';
   document.getElementById('badge-bid').textContent=((b.b20||b.b10)?`Tiene: ${b.b20} bid.20L · ${b.b10} bid.10L`:'Sin bidones')+dispInfo;
-  // Debug temporal
+  // Debug
+  if(CLIENTES_DISPENSER.size===0)console.warn('⚠️ CLIENTES_DISPENSER vacío — revisá que el Apps Script devuelva dispenserActivos en leerTodo()');
   console.log('Cliente:', nombre, '| tieneDispenser:', esDisp, '| CLIENTES_DISPENSER size:', CLIENTES_DISPENSER.size, '| en set:', CLIENTES_DISPENSER.has(nombre));
   const deuda=getDeuda(nombre);
   const db=document.getElementById('deuda-badge'),dm=document.getElementById('deuda-monto'),pr=document.getElementById('pagar-deuda-row'),ch=document.getElementById('pagar-deuda-check');

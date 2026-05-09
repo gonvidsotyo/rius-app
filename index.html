@@ -682,9 +682,9 @@ function buscarCliente(){
   const q=document.getElementById('cli-inp').value.trim();const list=document.getElementById('ac-list');
   if(q.length<1){list.style.display='none';return;}
   const m=CLIENTES.filter(c=>c.nombre.toLowerCase().includes(q.toLowerCase())).slice(0,8);
-  let html=m.map(c=>{const b=bCasa[c.nombre]||{b20:0,b10:0};const bs=(b.b20||b.b10)?` · 🫙${b.b20} 20L ${b.b10} 10L`:'';const db=tieneDispenser(c.nombre)?' · 🧊':CLIENTES_DISPENSER_RESERVADO.has(c.nombre)?' · ⏳':'';const e=c.nombre.replace(/'/g,"\\'");return `<div class="ac-item" onmousedown="selCli('${e}')"><div class="ac-name">${c.nombre}</div><div class="ac-sub">${[c.localidad,c.direccion].filter(Boolean).join(' · ')}${db}${bs}</div></div>`;}).join('');
-  const qe=q.replace(/'/g,"\\'");
-  html+=`<div class="ac-item ac-new" onmousedown="abrirModalCliente('${qe}')"><div class="ac-name" style="color:#185FA5;">➕ Agregar "${q}" como nuevo cliente</div><div class="ac-sub">Cargar dirección y teléfono</div></div>`;
+  let html=m.map(c=>{const b=bCasa[c.nombre]||{b20:0,b10:0};const bs=(b.b20||b.b10)?` · 🫙${b.b20} 20L ${b.b10} 10L`:'';const db=tieneDispenser(c.nombre)?' · 🧊':CLIENTES_DISPENSER_RESERVADO.has(c.nombre)?' · ⏳':'';const e=encodeURIComponent(c.nombre);return `<div class="ac-item" onmousedown="selCli(decodeURIComponent('${e}'))"><div class="ac-name">${c.nombre}</div><div class="ac-sub">${[c.localidad,c.direccion].filter(Boolean).join(' · ')}${db}${bs}</div></div>`;}).join('');
+  const qe=encodeURIComponent(q);
+  html+=`<div class="ac-item ac-new" onmousedown="abrirModalCliente(decodeURIComponent('${qe}'))"><div class="ac-name" style="color:#185FA5;">➕ Agregar "${q}" como nuevo cliente</div><div class="ac-sub">Cargar dirección y teléfono</div></div>`;
   list.innerHTML=html;list.style.display='block';
 }
 function selCli(nombre){

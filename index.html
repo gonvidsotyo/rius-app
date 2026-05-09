@@ -286,7 +286,8 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   <div id="clientes" class="screen">
     <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
       <input class="search-bar" type="text" placeholder="Buscar cliente o localidad..." oninput="renderClientes(this.value)" style="margin-bottom:0;flex:1;" />
-      <button onclick="recargarDesdeSheets()" style="background:#185FA5;color:#fff;border:none;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">↻ Sheets</button>
+      <button onclick="recargarDesdeSheets()" style="background:#185FA5;color:#fff;border:none;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">↻</button>
+      <button onclick="abrirModalNuevoClienteDirecto()" style="background:#3B6D11;color:#fff;border:none;border-radius:10px;padding:9px 12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">+ Cliente</button>
     </div>
     <div id="clientes-lista"></div>
   </div>
@@ -538,7 +539,23 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   </div>
 </div>
 
-<!-- MODAL DETALLE CLIENTE -->
+<!-- MODAL EDITAR CLIENTE -->
+<div class="modal-ped" id="modal-editar-cliente">
+  <div class="modal-ped-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:18px;font-weight:700;color:#000;" id="modal-edit-cli-titulo">Editar cliente</div>
+      <button onclick="cerrarModalEditarCliente()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#8e8e93;">✕</button>
+    </div>
+    <div class="venta-form">
+      <input type="hidden" id="edit-cli-original" />
+      <div><label>Nombre</label><input type="text" id="edit-cli-nombre2" style="width:100%;padding:9px 11px;border:1px solid #e5e5ea;border-radius:8px;" /></div>
+      <div><label>Dirección</label><input type="text" id="edit-cli-dir2" style="width:100%;padding:9px 11px;border:1px solid #e5e5ea;border-radius:8px;" /></div>
+      <div><label>Localidad</label><input type="text" id="edit-cli-loc2" style="width:100%;padding:9px 11px;border:1px solid #e5e5ea;border-radius:8px;" /></div>
+      <div><label>Teléfono</label><input type="text" id="edit-cli-tel2" style="width:100%;padding:9px 11px;border:1px solid #e5e5ea;border-radius:8px;" /></div>
+      <button class="confirm-btn" onclick="guardarEdicionClienteLista()" style="margin-top:4px;">Guardar cambios</button>
+    </div>
+  </div>
+</div>
 <div class="modal-cli" id="modal-cliente">
   <div class="modal-cli-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
@@ -771,7 +788,8 @@ function guardarNuevoCliente(){
     sincronizarNuevoCliente(nuevoCliente);
   }
   cerrarModalCliente();
-  if(modalNuevoClienteTarget==='pedido')selCliPedido(n);
+  if(modalNuevoClienteTarget==='pedido') selCliPedido(n);
+  else if(modalNuevoClienteTarget==='lista') renderClientes(document.querySelector('#clientes .search-bar')?.value||'');
   else selCli(n);
   guardarEstado();
 }

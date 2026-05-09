@@ -634,13 +634,13 @@ function guardarPrecios(){
   calcTotal();
 }
 
-// ---- DATA ----
-const CLIENTES_DISPENSER=new Set(["Abril Morelli","Agustin Liparelli","Agustina Bejarano","Ale Remigio","Alexandra","Alexis Chas","Andrea Lencina","Araceli Barbero","Armando","Barberia (Juan I. Romero)","Barberia (Ruben)","Brian Bastiani","Celeste Garcia","Claudio Camargo","Consultorio Odontologico","Damaris","Damian Aguirre","Diego Caradonti","Diego Legaspi","Dr. Jose Carlos Yañez","Escuela N°5 (Stella)","Escuela N°8 (2do B)","Escuela N°8 (Carolina)","Estefania","Florencia Pelozo","Forrajeria El Capitan","Glam Pilates","Gundys 25 de mayo","Heladeria Nuchi (Domselaar)","Isabel Braids","Joel El Konne Benitez","Jorge Mendoza","Juan Cruz Garcia","Juan Ignacio Romero","Juanpi Rodriguez","Juli Lemes","Juliana Braids","Leo Broggia","Lorena Airoldi","Macarena Tilio","Marcelo Godoy","Mariana Tilio","Mario Avalos","Martin Avalos","Matias Cañete","Matias Leglise","Melisa Ravena","MF motos (Seba o Fede)","Nico Bel","Noelia Magallanes","Pablo Gonzalez","Pablo Lopez","Pablo Reyes","Patricia Sargiotti (mama maxi)","Peluqueria","Rocio Medina","Rodrigo Damacio","Santiago Gamarra","Sebastian Esposito","Supermercado Fabian","Veronica Vizgarra","Walter Reyes"]);
-const CLIENTES_DISPENSER_RESERVADO=new Set(["Carolina Suarez","Karen"]);
-function tieneDispenser(n){return CLIENTES_DISPENSER.has(n);}
+// ---- DATA — todo vacío, se carga desde Sheets ----
+const CLIENTES_DISPENSER = new Set();
+const CLIENTES_DISPENSER_RESERVADO = new Set();
+function tieneDispenser(n){ return CLIENTES_DISPENSER.has(n); }
 
-const CLIENTES=[{"nombre":"Abril Morelli","localidad":"San Vicente","direccion":"Gundys Sarmiento","telefono":"11 69989823"},{"nombre":"Adela","localidad":"San Vicente","direccion":"Elpidio Gonzalez 130","telefono":"2224 530827"},{"nombre":"Adriana mama meli","localidad":"San Vicente","direccion":"Alvear 52","telefono":"2224 488107"},{"nombre":"Agustin Liparelli","localidad":"San Vicente","direccion":"Vuelta de obligado 252","telefono":""},{"nombre":"Agustina Bejarano","localidad":"San Vicente","direccion":"Pellegrini 442","telefono":"11 2794 8318"},{"nombre":"Ailen Ledesma","localidad":"Alejandro Korn","direccion":"Santo Domingo 783","telefono":"2224 531964"},{"nombre":"Aldana Romero","localidad":"Alejandro Korn","direccion":"C. Alejandro Korn 217, casa 319, B Empalme","telefono":"1127256459"},{"nombre":"Ale Remigio","localidad":"San Vicente","direccion":"Santa Fe 267","telefono":"2224 495 765"},{"nombre":"Alexandra","localidad":"San Vicente","direccion":"Neuquen 332","telefono":"11 3590-5126"},{"nombre":"Alexis Chas","localidad":"San Vicente","direccion":"Por ahora sin domicilio","telefono":"1154946941"},{"nombre":"Andrea Lencina","localidad":"San Vicente","direccion":"General Rodriguez 1066","telefono":"2224 608818"},{"nombre":"Araceli Barbero","localidad":"San Vicente","direccion":"Eugenio Cambaceres 3452","telefono":"11 4948 4102"},{"nombre":"Armando","localidad":"San Vicente","direccion":"Ruta 6, al lado de la entrada de la mercedita","telefono":"2225 453409"},{"nombre":"Barbara Nowosad","localidad":"San Vicente","direccion":"Lote 20, Barrio Santa Clara al Sur","telefono":"11 54013162"},{"nombre":"Barberia (Juan I. Romero)","localidad":"San Vicente","direccion":"Nicandro Rodriguez 236","telefono":"2224 486319"},{"nombre":"Barberia (Ruben)","localidad":"San Vicente","direccion":"Presidente Peron 1133","telefono":"1171136194"},{"nombre":"Bianca Comoli","localidad":"Alejandro Korn","direccion":"Av. Independencia 60","telefono":"2224 493795"},{"nombre":"Brian Bastiani","localidad":"Alejandro Korn","direccion":"Guemes 952, e Alzaga y Castelar","telefono":"11-3842-2137"},{"nombre":"Camila Miño","localidad":"","direccion":"","telefono":""},{"nombre":"Carolina Suarez","localidad":"Alejandro Korn","direccion":"General Paz 587 e/Cordoba y San Vicnte","telefono":"11 5344-3599"},{"nombre":"Celeste Garcia","localidad":"San Vicente","direccion":"Almirante Brown 260","telefono":"11 2409-2485"},{"nombre":"Claudio Camargo","localidad":"Brandsen","direccion":"calle 13 al 236, entre 120 y 121","telefono":"2223 524355"},{"nombre":"Consultorio Odontologico","localidad":"San Vicente","direccion":"Carlos Pellegrini 20","telefono":"2224 55-2726"},{"nombre":"Damaris","localidad":"San Vicente","direccion":"Adolfo Korn 1018","telefono":"11-6515-3805"},{"nombre":"Damian Aguirre","localidad":"San Vicente","direccion":"San Lorenzo 1087","telefono":"11 5998 6786"},{"nombre":"David Arroyo","localidad":"San Vicente","direccion":"","telefono":""},{"nombre":"Diego Caradonti","localidad":"San Vicente","direccion":"Pastorino y patricios","telefono":"2224 448338"},{"nombre":"Diego Legaspi","localidad":"San Vicente","direccion":"Lote 371, Barrio Santa Clara al Sur","telefono":"1135890294"},{"nombre":"Diego Ospital","localidad":"San Vicente","direccion":"Lote 105, Barrio Santa Clara al Sur","telefono":"11 55849050"},{"nombre":"Dr. Jose Carlos Yañez","localidad":"San Vicente","direccion":"el litoral 303","telefono":"11 3368 2225"},{"nombre":"Eduardo","localidad":"San Vicente","direccion":"Lote 695 manzana 29, barrio papa Francisco","telefono":"1124051193"},{"nombre":"Elsa Machuca","localidad":"San Vicente","direccion":"presidente illia 133","telefono":"2224 449600"},{"nombre":"Escuela N°5 (Stella)","localidad":"San Vicente","direccion":"Iturralde y Lavalle","telefono":"2224 50-3625"},{"nombre":"Escuela N°8 (2do B)","localidad":"Alejandro Korn","direccion":"Florida 949","telefono":""},{"nombre":"Escuela N°8 (Carolina)","localidad":"Alejandro Korn","direccion":"Florida 949","telefono":"1153443599"},{"nombre":"Esteban","localidad":"San Vicente","direccion":"Ruben Dario 310","telefono":"11 67915359"},{"nombre":"Estefania","localidad":"Brandsen","direccion":"Calle 10 746 e/15 y 16","telefono":"2223461855"},{"nombre":"Evelin Tognetti","localidad":"Alejandro Korn","direccion":"casa 12 (Lasalle 86) Barrio Empalme","telefono":"11 23202532"},{"nombre":"Ezequiel Soria","localidad":"San Vicente","direccion":"Alsina 2900","telefono":"11 56545150"},{"nombre":"Federico Heredia","localidad":"Alejandro Korn","direccion":"Mitre 43","telefono":"11 7148 9394"},{"nombre":"Federico Maracio","localidad":"San Vicente","direccion":"Amoretti 574","telefono":"2224455939"},{"nombre":"Fernando Pereyro","localidad":"San Vicente","direccion":"Santa clara al sur","telefono":"11 6990-6421"},{"nombre":"Florencia Pelozo","localidad":"San Vicente","direccion":"Juan Jose Paso 2054","telefono":"11 23079397"},{"nombre":"Florencia Saloiña","localidad":"San Vicente","direccion":"Cordoba 562","telefono":"11 3505 1682"},{"nombre":"Forrajeria El Capitan","localidad":"Alejandro Korn","direccion":"Av. Independencia 74","telefono":"11 3799 2868"},{"nombre":"Glam Pilates","localidad":"San Vicente","direccion":"Rivadavia 625","telefono":"11 2765 8705"},{"nombre":"Gundys 25 de mayo","localidad":"San Vicente","direccion":"25 de mayo","telefono":"2224 448338"},{"nombre":"Heladeria Nuchi","localidad":"Alejandro Korn","direccion":"Mitre 43","telefono":"11 7148 9394"},{"nombre":"Heladeria Nuchi Domselaar","localidad":"San Vicente","direccion":"San Martin y Mitre","telefono":"2224480361"},{"nombre":"Isabel Braids","localidad":"San Vicente","direccion":"Dewey 480","telefono":"2224496754"},{"nombre":"Ivo","localidad":"San Vicente","direccion":"Facundo Quiroga 902","telefono":"11-5668-2439"},{"nombre":"Jesica","localidad":"Alejandro Korn","direccion":"Gainza 932, entre castelar y alzaga","telefono":"11 39122890"},{"nombre":"Joel El Konne Benitez","localidad":"Brandsen","direccion":"Belgrano 245, timbre 2","telefono":"2223436757"},{"nombre":"Jorge Mendoza","localidad":"San Vicente","direccion":"Ruta 6 al lado de la mercedita","telefono":"2225 519144"},{"nombre":"Juan Bevilaqua","localidad":"San Vicente","direccion":"Directorio 1733","telefono":"2225400352"},{"nombre":"Juan Cruz Garcia","localidad":"San Vicente","direccion":"Av. Presidente Peron 550","telefono":"11 7369 6707"},{"nombre":"Juan Ignacio Romero","localidad":"San Vicente","direccion":"Bolivar 1693","telefono":"2224 486319"},{"nombre":"Juanpi Rodriguez","localidad":"San Vicente","direccion":"Castilli","telefono":"11 3805-6495"},{"nombre":"Juli Lemes","localidad":"Alejandro Korn","direccion":"Gonnet 395 e/Raccone","telefono":"3755582667"},{"nombre":"Juliana Braids","localidad":"San Vicente","direccion":"Dewey 480","telefono":"11 5165 1947"},{"nombre":"Karen","localidad":"Alejandro Korn","direccion":"Florida 819","telefono":"11 2687-5538"},{"nombre":"Karina","localidad":"San Vicente","direccion":"Mansilla frente al puesto policial","telefono":"11 68206903"},{"nombre":"Laura Doga","localidad":"San Vicente","direccion":"Almirante Brown 250","telefono":"2224 49-3588"},{"nombre":"Leo Broggia","localidad":"Alejandro Korn","direccion":"Bassi 180","telefono":"2224 46-6535"},{"nombre":"Lorena Airoldi","localidad":"San Vicente","direccion":"Quintana 98 (Depto 14)","telefono":"11 2774-7047"},{"nombre":"Luciano Capristo","localidad":"San Vicente","direccion":"San Lorenzo 1125","telefono":"11-2386-7809"},{"nombre":"Macarena Tilio","localidad":"Alejandro Korn","direccion":"Raccone 622","telefono":"2224 48 6983"},{"nombre":"Maira Horomanski","localidad":"San Vicente","direccion":"La Pampa 261, barrio Bosques","telefono":"11 3158 5778"},{"nombre":"Marce mama oriana","localidad":"San Vicente","direccion":"Congreso de 1816 n53","telefono":"11 35362342"},{"nombre":"Marcela Avila","localidad":"San Vicente","direccion":"Santa Fe 254","telefono":"2224 551960"},{"nombre":"Marcelo Godoy","localidad":"San Vicente","direccion":"La Rioja y Arenales","telefono":"1140610895"},{"nombre":"Marian Ignani","localidad":"San Vicente","direccion":"Rodolfo Walsh 79","telefono":"11 5876-9760"},{"nombre":"Mariana Lassi","localidad":"Alejandro Korn","direccion":"Eduardo Wilde 1005","telefono":"11 3190-8760"},{"nombre":"Mariana Tilio","localidad":"Alejandro Korn","direccion":"Los Nogales, A. Korn","telefono":"2224555907"},{"nombre":"Mario Avalos","localidad":"Brandsen","direccion":"Almafuerte 1481","telefono":"2223 510642"},{"nombre":"Martin Avalos","localidad":"Brandsen","direccion":"Infanta Isabel 649","telefono":"2223 490989"},{"nombre":"Masas Buenos Aires","localidad":"San Vicente","direccion":"Parque Industrial San Vicente","telefono":"22215458465"},{"nombre":"Matias Cañete","localidad":"San Vicente","direccion":"Av. Presidente peron 1204","telefono":"2224 533535"},{"nombre":"Matias Leglise","localidad":"Brandsen","direccion":"Azcuenaga 3157","telefono":"2223 540254"},{"nombre":"Matias Peralta","localidad":"San Vicente","direccion":"Yrigoyen 939","telefono":"11 7065 8944"},{"nombre":"Maxi Coria","localidad":"Alejandro Korn","direccion":"Alfredo Palacios 550","telefono":"1136709772"},{"nombre":"Melina Romero","localidad":"San Vicente","direccion":"Bolivar 255","telefono":"2224 53 8241"},{"nombre":"Melisa Deciancio","localidad":"San Vicente","direccion":"Ricardo Guiraldes y Capdevilla","telefono":"11 5497 2709"},{"nombre":"Melisa Ravena","localidad":"San Vicente","direccion":"San Lorenzo 350","telefono":"2224 536025"},{"nombre":"MF motos (Seba o Fede)","localidad":"San Vicente","direccion":"Av. Presidente Peron 1400","telefono":"2224 492192"},{"nombre":"Miguel Coria Taller","localidad":"San Vicente","direccion":"Madero 180 aprox.","telefono":"11 6993-7764"},{"nombre":"Morena Padyz","localidad":"San Vicente","direccion":"Ruta 6 km 60.500","telefono":"2224496724"},{"nombre":"Nahuel Medina","localidad":"San Vicente","direccion":"Av. Presidente Peron 1985","telefono":"2224 493006"},{"nombre":"Nahuel Romero","localidad":"Alejandro Korn","direccion":"San Pedro 1150","telefono":"11 6421-9824"},{"nombre":"Nico Bel","localidad":"San Vicente","direccion":"Aoniken","telefono":"1162123602"},{"nombre":"Noelia Magallanes","localidad":"San Vicente","direccion":"Directorio 1038","telefono":"11 3424 3085"},{"nombre":"Oriana","localidad":"San Vicente","direccion":"Congreso de 1816 n53","telefono":"11 6178 8945"},{"nombre":"Pablo Gonzalez","localidad":"Alejandro Korn","direccion":"Rivadavia 530","telefono":"11 21699528"},{"nombre":"Pablo Lopez","localidad":"Alejandro Korn","direccion":"Alfonsina Storni 351","telefono":"2224 495627"},{"nombre":"Pablo Reyes","localidad":"Brandsen","direccion":"Julio Sosa 325 y Las Heras","telefono":"2223 514278"},{"nombre":"Pamela Lisman","localidad":"San Vicente","direccion":"Ugarte 332","telefono":"2224 552302"},{"nombre":"Patricia Sargiotti (mama maxi)","localidad":"San Vicente","direccion":"Sargento Cabral 585","telefono":"1136709698"},{"nombre":"Paul Vidal Sotgiu","localidad":"Alejandro Korn","direccion":"Rivadavia 652","telefono":"11 3799 2868"},{"nombre":"Peluqueria","localidad":"San Vicente","direccion":"Bolivar 255","telefono":"2224 53 8241"},{"nombre":"Rocio Gauna","localidad":"Alejandro Korn","direccion":"Colon 360","telefono":"2224 492839"},{"nombre":"Rocio Medina","localidad":"San Vicente","direccion":"Roca al 48","telefono":"2224 548099"},{"nombre":"Rodrigo Damacio","localidad":"Alejandro Korn","direccion":"Uruguay 54","telefono":"1123381325"},{"nombre":"Romina","localidad":"San Vicente","direccion":"Mansilla entre Ruben Dario y Rojas","telefono":"11 63033525"},{"nombre":"Rosario mama Kelo","localidad":"San Vicente","direccion":"Colon 342","telefono":"11 68400300"},{"nombre":"Santiago Gamarra","localidad":"Alejandro Korn","direccion":"Chaco 902","telefono":"3442 666358"},{"nombre":"Sebastian Esposito","localidad":"San Vicente","direccion":"Intendente Ferrere","telefono":"2224505183"},{"nombre":"Soledad Fincas","localidad":"San Vicente","direccion":"Fincas sporting lote 268","telefono":"11 3791 7006"},{"nombre":"Supermercado Fabian","localidad":"San Vicente","direccion":"Sarmiento 344","telefono":"11 2319 0004"},{"nombre":"Valeria Blanco","localidad":"Alejandro Korn","direccion":"Costa 890","telefono":"11 5744-3431"},{"nombre":"Veronica Catan","localidad":"Alejandro Korn","direccion":"Francisco Narciso de Laprida 122","telefono":"11 3803 4005"},{"nombre":"Veronica Vizgarra","localidad":"Alejandro Korn","direccion":"esmeralda 311","telefono":"2224 440034"},{"nombre":"Walter Reyes","localidad":"Brandsen","direccion":"French 648","telefono":"2223 465221"}];
-const CLIENTES_BASE_NOMBRES=new Set(CLIENTES.map(c=>c.nombre));
+const CLIENTES = [];
+const CLIENTES_BASE_NOMBRES = new Set(); // se puebla al cargar desde Sheets
 const bCasa={};CLIENTES.forEach(c=>{bCasa[c.nombre]={b20:0,b10:0};});
 const bCasaModificado=new Set();
 const deudas={};CLIENTES.forEach(c=>{deudas[c.nombre]=0;});CLIENTES_DISPENSER.forEach(n=>{deudas[n]=25000;});
@@ -1410,7 +1410,19 @@ function iniciarAutoRecarga(){
 // ---- PERSISTENCIA ----
 const STORAGE_KEY='rius_v3';
 function guardarEstado(){
-  try{localStorage.setItem(STORAGE_KEY,JSON.stringify({ventas:ventas.map(v=>({...v,hora:new Date(v.hora).toISOString()})),gastos:gastos.map(g=>({...g,hora:new Date(g.hora).toISOString()})),pedidos,deudas:Object.fromEntries(Object.entries(deudas)),bCasa:Object.fromEntries(Object.entries(bCasa)),dispenserMes:Object.fromEntries(Object.entries(dispenserMes)),clientesExtra:CLIENTES.filter(c=>!CLIENTES_BASE_NOMBRES.has(c.nombre))}));}catch(e){}
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({
+      ventas:ventas.map(v=>({...v,hora:new Date(v.hora).toISOString()})),
+      gastos:gastos.map(g=>({...g,hora:new Date(g.hora).toISOString()})),
+      pedidos,
+      deudas:Object.fromEntries(Object.entries(deudas)),
+      bCasa:Object.fromEntries(Object.entries(bCasa)),
+      dispenserMes:Object.fromEntries(Object.entries(dispenserMes)),
+      clientes:CLIENTES,
+      dispenserActivos:[...CLIENTES_DISPENSER],
+      dispenserReservados:[...CLIENTES_DISPENSER_RESERVADO],
+    }));
+  }catch(e){}
 }
 function cargarEstado(){
   try{
@@ -1418,11 +1430,25 @@ function cargarEstado(){
     const e=JSON.parse(raw);
     if(e.ventas)ventas=e.ventas.map(v=>({...v,hora:new Date(v.hora)}));
     if(e.pedidos)pedidos=e.pedidos;
-    if(e.gastos)gastos=e.gastos.map(g=>{const gasto={...g,hora:new Date(g.hora)};if(gasto.bid20===undefined||gasto.bid10===undefined){const pN=(nota,pat)=>{const m=nota?nota.match(new RegExp(pat)):null;return m?parseInt(m[1]):0;};gasto.bid20=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*20L');gasto.bid10=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*10L');}return gasto;});
+    if(e.gastos)gastos=e.gastos.map(g=>{
+      const gasto={...g,hora:new Date(g.hora)};
+      if(gasto.bid20===undefined||gasto.bid10===undefined){
+        const pN=(nota,pat)=>{const m=nota?nota.match(new RegExp(pat)):null;return m?parseInt(m[1]):0;};
+        gasto.bid20=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*20L');gasto.bid10=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*10L');
+      }
+      return gasto;
+    });
     if(e.deudas)Object.assign(deudas,e.deudas);
     if(e.bCasa)Object.assign(bCasa,e.bCasa);
     if(e.dispenserMes)Object.assign(dispenserMes,e.dispenserMes);
-    if(e.clientesExtra)e.clientesExtra.forEach(c=>{if(!CLIENTES.find(x=>x.nombre===c.nombre)){CLIENTES.push(c);bCasa[c.nombre]={b20:0,b10:0};deudas[c.nombre]=0;}});
+    // Clientes desde cache local
+    if(e.clientes&&e.clientes.length){
+      CLIENTES.length=0;CLIENTES_BASE_NOMBRES.clear();
+      e.clientes.forEach(c=>{CLIENTES.push(c);CLIENTES_BASE_NOMBRES.add(c.nombre);if(!bCasa[c.nombre])bCasa[c.nombre]={b20:0,b10:0};if(deudas[c.nombre]===undefined)deudas[c.nombre]=0;});
+    }
+    // Dispensers desde cache local
+    if(e.dispenserActivos){CLIENTES_DISPENSER.clear();e.dispenserActivos.forEach(n=>CLIENTES_DISPENSER.add(n));}
+    if(e.dispenserReservados){CLIENTES_DISPENSER_RESERVADO.clear();e.dispenserReservados.forEach(n=>CLIENTES_DISPENSER_RESERVADO.add(n));}
     return true;
   }catch(e){return false;}
 }
@@ -1455,14 +1481,61 @@ async function cargarDesdeSheets(url){
   try{
     const res=await fetch(url+'?accion=leer');const json=await res.json();
     if(!json.ok||!json.datos)return false;const d=json.datos;
+
+    // Clientes
+    if(d.clientes&&d.clientes.length){
+      CLIENTES.length=0; // vaciar sin romper referencia
+      CLIENTES_BASE_NOMBRES.clear();
+      Object.keys(bCasa).forEach(k=>{delete bCasa[k];});
+      d.clientes.forEach(c=>{
+        if(!c.nombre)return;
+        CLIENTES.push({nombre:c.nombre,localidad:c.localidad||'',direccion:c.direccion||'',telefono:c.telefono||''});
+        CLIENTES_BASE_NOMBRES.add(c.nombre);
+        bCasa[c.nombre]={b20:Number(c.b20)||0,b10:Number(c.b10)||0};
+        if(!deudas[c.nombre])deudas[c.nombre]=0;
+      });
+    }
+
+    // Dispensers activos y reservados
+    if(d.dispenserActivos){
+      CLIENTES_DISPENSER.clear();
+      d.dispenserActivos.forEach(n=>CLIENTES_DISPENSER.add(n));
+    }
+    if(d.dispenserReservados){
+      CLIENTES_DISPENSER_RESERVADO.clear();
+      d.dispenserReservados.forEach(n=>CLIENTES_DISPENSER_RESERVADO.add(n));
+    }
+
+    // Deudas
+    if(d.deudas&&Object.keys(d.deudas).length){
+      Object.keys(deudas).forEach(k=>{deudas[k]=0;});
+      Object.assign(deudas,d.deudas);
+    }
+
+    // Ventas
     if(d.ventas&&d.ventas.length)ventas=d.ventas.map(v=>({...v,hora:v.hora?new Date(v.hora):new Date(),dev20:v.dev20||0,dev10:v.dev10||0,nuevaDeuda:0,deudaSaldada:0}));
+
+    // Pedidos
     if(d.pedidos&&d.pedidos.length)pedidos=d.pedidos;
-    if(d.gastos&&d.gastos.length)gastos=d.gastos.map(g=>{const gasto={...g,hora:new Date(g.hora)};if(gasto.bid20===undefined||gasto.bid10===undefined){const pN=(nota,pat)=>{const m=nota?nota.match(new RegExp(pat)):null;return m?parseInt(m[1]):0;};gasto.bid20=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*20L');gasto.bid10=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*10L');}return gasto;});
-    if(d.clientes&&d.clientes.length){Object.keys(bCasa).forEach(k=>{bCasa[k]={b20:0,b10:0};});d.clientes.forEach(c=>{if(!c.nombre)return;bCasa[c.nombre]={b20:Number(c.b20)||0,b10:Number(c.b10)||0};if(!CLIENTES_BASE_NOMBRES.has(c.nombre)&&!CLIENTES.find(x=>x.nombre===c.nombre))CLIENTES.push({nombre:c.nombre,localidad:c.localidad||'',direccion:c.direccion||'',telefono:c.telefono||''});});}
-    if(d.deudas&&Object.keys(d.deudas).length){Object.keys(deudas).forEach(k=>{deudas[k]=0;});Object.assign(deudas,d.deudas);}
+
+    // Gastos
+    if(d.gastos&&d.gastos.length)gastos=d.gastos.map(g=>{
+      const gasto={...g,hora:new Date(g.hora)};
+      if(gasto.bid20===undefined||gasto.bid10===undefined){
+        const pN=(nota,pat)=>{const m=nota?nota.match(new RegExp(pat)):null;return m?parseInt(m[1]):0;};
+        gasto.bid20=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*20L');gasto.bid10=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*10L');
+      }
+      return gasto;
+    });
+
+    // Stock inicial
     if(d.stockInicial){Object.assign(stockInicial,d.stockInicial);guardarCacheStockInicial();}
+
+    // Usuarios
     if(d.usuarios&&d.usuarios.length){guardarUsuarios(d.usuarios);renderLoginUsuarios();}
-    bCasaModificado.clear();return true;
+
+    bCasaModificado.clear();
+    return true;
   }catch(e){console.error('Error cargando Sheets:',e);return false;}
 }
 
@@ -1483,7 +1556,6 @@ window.addEventListener('load', async () => {
   cargarPrecios();
   cargarStockInicial();
   const hayLocal = cargarEstado();
-  if (!hayLocal) CLIENTES_DISPENSER.forEach(n => { deudas[n] = 25000; });
   calcularStock(); calcTotal(); actualizarDev(); actualizarResumen();
 
   // Recuperar URL guardada

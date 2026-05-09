@@ -205,7 +205,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         </div>
         <div>
           <label>Producto</label>
-          <select id="prod-sel" onchange="calcTotal();actualizarDev();toggleBidDisp();togglePagoDirecto();">
+          <select id="prod-sel" onchange="calcTotal();actualizarDev();toggleBidDisp();togglePagoDirecto();actualizarBannerAbono();">
             <option value="5000|1000|20">Bidón 20L — $5.000</option>
             <option value="4000|800|10">Bidón 10L — $4.000</option>
             <option value="disp-fc|0|0">Dispenser frío/calor + bidones</option>
@@ -241,6 +241,16 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
           <div class="qty-row"><span class="qty-label">Vacíos 10L</span><div class="qty-control"><button class="qty-btn" onclick="cambiarDev('dev10',-1)">−</button><span class="qty-num" id="dev10">0</span><button class="qty-btn" onclick="cambiarDev('dev10',1)">+</button></div></div>
         </div>
         <div class="bidones-resumen" id="bidones-resumen"></div>
+        <!-- BANNER ABONO DISPENSER -->
+        <div id="abono-badge" style="display:none;background:#FFF3CD;border-radius:10px;padding:10px 12px;border:1.5px solid #F59E0B;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#854F0B;">🧊 Abono dispenser pendiente</div>
+              <div id="abono-badge-monto" style="font-size:12px;color:#92400e;margin-top:2px;"></div>
+            </div>
+            <input type="checkbox" id="cobrar-abono-check" onchange="calcTotal()" style="width:20px;height:20px;cursor:pointer;accent-color:#854F0B;" />
+          </div>
+        </div>
         <div class="deuda-badge" id="deuda-badge">
           <div><div style="font-weight:600;">⚠ Cliente con deuda</div><div id="deuda-monto" style="font-size:12px;margin-top:2px;"></div></div>
         </div>
@@ -537,7 +547,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.2.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.3.0</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -549,7 +559,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.2.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.3.0</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -689,6 +699,19 @@ function buscarCliente(){
   html+=`<div class="ac-item ac-new" onmousedown="abrirModalCliente(decodeURIComponent('${qe}'))"><div class="ac-name" style="color:#185FA5;">➕ Agregar "${q}" como nuevo cliente</div><div class="ac-sub">Cargar dirección y teléfono</div></div>`;
   list.innerHTML=html;list.style.display='block';
 }
+function actualizarBannerAbono(){
+  const badge=document.getElementById('abono-badge');
+  const check=document.getElementById('cobrar-abono-check');
+  const prodKey=document.getElementById('prod-sel').value;
+  const es20L=prodKey==='5000|1000|20';
+  if(cliSel&&tieneDispenser(cliSel.nombre)&&tieneAbonoPendiente(cliSel.nombre)&&es20L){
+    document.getElementById('abono-badge-monto').textContent=`Alquiler ${fmt(precios.pdisp)} — ¿Cobrar ahora?`;
+    badge.style.display='block';
+  }else{
+    badge.style.display='none';
+    if(check)check.checked=false;
+  }
+}
 function selCli(nombre){
   cliSel=CLIENTES.find(c=>c.nombre===nombre);
   document.getElementById('cli-inp').value='';document.getElementById('ac-list').style.display='none';
@@ -706,12 +729,15 @@ function selCli(nombre){
   if(deuda>0){db.classList.add('visible');dm.textContent=`Debe ${fmt(deuda)}`;pr.style.display='flex';if(ch)ch.checked=false;}
   else{db.classList.remove('visible');pr.style.display='none';if(ch)ch.checked=false;}
   if(document.getElementById('prod-sel').value==='pago|0|0')actualizarInfoPagoDirecto();
+  actualizarBannerAbono();
   resetDev();calcTotal();
 }
 function limpiarCliente(){
   cliSel=null;document.getElementById('cli-inp').value='';document.getElementById('ac-list').style.display='none';
   document.getElementById('cli-badge').classList.remove('on');document.getElementById('deuda-badge').classList.remove('visible');
   document.getElementById('pagar-deuda-row').style.display='none';document.getElementById('total-con-deuda-row').style.display='none';
+  document.getElementById('abono-badge').style.display='none';
+  const ch=document.getElementById('cobrar-abono-check');if(ch)ch.checked=false;
   resetDev();
 }
 document.addEventListener('click',e=>{if(!e.target.closest('.cw')){document.getElementById('ac-list').style.display='none';document.getElementById('ped-ac-list').style.display='none';}});
@@ -927,6 +953,7 @@ function calcTotal(){
   const key=document.getElementById('prod-sel').value;const cant=parseInt(document.getElementById('cant').value)||1;
   const res=document.getElementById('bidones-resumen');
   const pagarDeuda=document.getElementById('pagar-deuda-check')?.checked&&pagoActual!=='nopago';
+  const cobrarAbono=document.getElementById('cobrar-abono-check')?.checked&&pagoActual!=='nopago';
   const deudaCli=cliSel?getDeuda(cliSel.nombre):0;
   const tcdr=document.getElementById('total-con-deuda-row'),tcde=document.getElementById('total-con-deuda');
   let total,ganancia;
@@ -938,6 +965,7 @@ function calcTotal(){
   else if(key==='disp-fc|0|0'){const nb20=bidDisp.bd20,nb10=bidDisp.bd10,totalBid=nb20+nb10,bidExtra=Math.max(0,totalBid-4),bidInc=Math.min(totalBid,4);total=precios.pdisp+bidExtra*precios.p20;ganancia=precios.pdisp+bidExtra*(precios.p20-precios.c20);let msg='🧊 Dispenser';if(totalBid>0){msg+=' · '+[nb20>0?nb20+' bid.20L':'',nb10>0?nb10+' bid.10L':''].filter(Boolean).join('+');if(bidInc>0)msg+=' ('+bidInc+' incl.)';if(bidExtra>0)msg+=' + '+bidExtra+' extra';}res.textContent=msg;res.classList.add('visible');}
   else if(key==='devdisp|0|0'){total=0;ganancia=0;res.textContent='♻️ Devolver dispenser';res.classList.add('visible');}
   else{total=precios.pdisp*cant;ganancia=precios.pdisp*cant;res.classList.remove('visible');}
+  if(cobrarAbono){total+=precios.pdisp;ganancia+=precios.pdisp;}
   if(montoManualActivo)total=parseInt(document.getElementById('monto-manual')?.value)||total;
   document.getElementById('total-venta').textContent=fmt(total);document.getElementById('gan-venta').textContent=fmt(ganancia);
   if(pagarDeuda&&deudaCli>0){tcdr.style.display='flex';tcde.textContent=fmt(total+deudaCli)+' total';}else if(tcdr)tcdr.style.display='none';
@@ -971,10 +999,17 @@ function registrarVenta(){
   }else if(key==='devdisp|0|0'){total=0;ganancia=0;nombreVenta='Devol. dispenser';if(cliSel)CLIENTES_DISPENSER.delete(cliSel.nombre);}
   else{total=precios.pdisp*cant;ganancia=precios.pdisp*cant;nombreVenta='Alquiler dispenser';}
   const pagarDeuda=document.getElementById('pagar-deuda-check')?.checked&&pagoActual!=='nopago';
+  const cobrarAbono=document.getElementById('cobrar-abono-check')?.checked&&pagoActual!=='nopago';
   const nomCli=cliSel?cliSel.nombre:'';const deudaAnt=pagarDeuda?getDeuda(nomCli):0;const totalFinal=total+deudaAnt;
   if(pagoActual==='nopago'){if(nomCli)deudas[nomCli]=(deudas[nomCli]||0)+total;}else if(pagarDeuda&&deudaAnt>0){deudas[nomCli]=0;}
   if(cliSel){const b=bCasa[cliSel.nombre];if(key==='5000|1000|20')b.b20=Math.max(0,b.b20+cant-dev.dev20);if(key==='4000|800|10')b.b10=Math.max(0,b.b10+cant-dev.dev10);if(key!=='5000|1000|20'&&dev.dev20>0)b.b20=Math.max(0,b.b20-dev.dev20);if(key!=='4000|800|10'&&dev.dev10>0)b.b10=Math.max(0,b.b10-dev.dev10);bCasaModificado.add(cliSel.nombre);}
   ventas.unshift({nombre:nombreVenta,cant,total:totalFinal,ganancia,hora:new Date(),cliente:nomCli,usuario:usuarioActual||'',dev20:dev.dev20,dev10:dev.dev10,pago:pagoActual,deudaSaldada:pagarDeuda?deudaAnt:0,nuevaDeuda:pagoActual==='nopago'?total:0});
+  // Registrar abono dispenser como venta separada
+  if(cobrarAbono&&nomCli){
+    abonosPagados[nomCli]=getMesAbono();
+    guardarAbonosPagados();
+    ventas.unshift({nombre:'Abono dispenser',cant:1,total:precios.pdisp,ganancia:precios.pdisp,hora:new Date(),cliente:nomCli,usuario:usuarioActual||'',dev20:0,dev10:0,pago:pagoActual,deudaSaldada:0,nuevaDeuda:0});
+  }
   pagoActual='efectivo';selPago('efectivo');finalizarEntregaPedido();calcularStock();actualizarResumen();guardarEstado();sincAuto();showScreen('inicio');
 }
 

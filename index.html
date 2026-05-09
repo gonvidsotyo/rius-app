@@ -548,7 +548,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 </div>
 
 <!-- MODAL EDITAR CLIENTE -->
-<div class="modal-ped" id="modal-editar-cliente">
+<div class="modal-ped" id="modal-editar-cliente" style="display:none;">
   <div class="modal-ped-box">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <div style="font-size:18px;font-weight:700;color:#000;" id="modal-edit-cli-titulo">Editar cliente</div>
@@ -1145,7 +1145,9 @@ function eliminarCliente(nombre){
 
 function abrirModalEditarCliente(nombre){
   const c=CLIENTES.find(x=>x.nombre===nombre);
-  if(!c) return;
+  if(!c){ console.error('Cliente no encontrado:',nombre); return; }
+  const modal=document.getElementById('modal-editar-cliente');
+  if(!modal){ console.error('Modal no encontrado'); return; }
   document.getElementById('edit-cli-original').value=nombre;
   document.getElementById('edit-cli-titulo').textContent='Editar · '+nombre;
   document.getElementById('edit-cli-nombre2').value=c.nombre;
@@ -1158,10 +1160,15 @@ function abrirModalEditarCliente(nombre){
     const match=localidades.find(l=>l.toLowerCase()===c.localidad.toLowerCase());
     if(match) sel2.value=match;
   }
-  document.getElementById('modal-editar-cliente').classList.add('visible');
-  setTimeout(()=>document.getElementById('edit-cli-nombre2').focus(),150);
+  // Forzar display flex (por si el CSS lo tiene como none)
+  modal.style.display='flex';
+  modal.classList.add('visible');
+  setTimeout(()=>{ const inp=document.getElementById('edit-cli-nombre2'); if(inp) inp.focus(); },150);
 }
-function cerrarModalEditarCliente(){ document.getElementById('modal-editar-cliente').classList.remove('visible'); }
+function cerrarModalEditarCliente(){
+  const modal=document.getElementById('modal-editar-cliente');
+  if(modal){ modal.classList.remove('visible'); modal.style.display=''; }
+}
 function guardarEdicionClienteLista(){
   const original=document.getElementById('edit-cli-original').value;
   const c=CLIENTES.find(x=>x.nombre===original);if(!c)return;

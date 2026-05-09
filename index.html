@@ -547,7 +547,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.3.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.4.0</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -559,7 +559,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.3.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.4.0</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -631,6 +631,29 @@ function calcularDispenser(n,cant){const ya=getBidonesDispenserMes(n);const bon=
 const abonosPagados = {}; // { "nombre": "2026-05" }
 
 function getMesAbono(){ return getMesActual(); }
+function recalcularDesdeVentas(lista){
+  // Recalcula dispenserMes y abonosPagados a partir del historial de ventas
+  const mes=getMesActual();
+  if(!lista||!lista.length)return;
+  // Resetear solo el mes actual para no acumular
+  Object.keys(dispenserMes).forEach(k=>{if(dispenserMes[k].mes===mes)delete dispenserMes[k];});
+  lista.forEach(v=>{
+    const hora=v.hora?new Date(v.hora):null;
+    if(!hora)return;
+    const vMes=hora.getFullYear()+'-'+String(hora.getMonth()+1).padStart(2,'0');
+    if(vMes!==mes)return;
+    const cli=v.cliente;if(!cli)return;
+    // Contar bidones entregados con dispenser este mes
+    if(v.nombre&&v.nombre.includes('Bidón 20L')&&v.nombre.includes('dispenser')){
+      if(!dispenserMes[cli]||dispenserMes[cli].mes!==mes)dispenserMes[cli]={mes,cant:0};
+      dispenserMes[cli].cant+=(v.cant||0);
+    }
+    // Marcar abono como pagado si hay venta de abono en el mes
+    if(v.nombre==='Abono dispenser'){
+      abonosPagados[cli]=mes;
+    }
+  });
+}
 function tieneAbonoPendiente(nombre){
   if(!tieneDispenser(nombre)) return false;
   return abonosPagados[nombre] !== getMesAbono();
@@ -1214,7 +1237,7 @@ function renderPedidos(){
 }
 
 // ---- DISPENSERS ----
-function buildDispensersPayload(){const mes=getMesActual();const clientesDisp=[...CLIENTES_DISPENSER].map(nombre=>{const cli=CLIENTES.find(c=>c.nombre===nombre)||{nombre,direccion:'',telefono:''};const bidonesEsteMes=dispenserMes[nombre]?.mes===mes?(dispenserMes[nombre]?.cant||0):0;return{nombre,direccion:cli.direccion||'',telefono:cli.telefono||'',pagado:(deudas[nombre]||0)===0,deuda:deudas[nombre]||0,bidonesEsteMes};}).sort((a,b)=>a.nombre.localeCompare(b.nombre));const reservados=[...CLIENTES_DISPENSER_RESERVADO].map(nombre=>{const cli=CLIENTES.find(c=>c.nombre===nombre)||{nombre,direccion:'',telefono:''};return{nombre,direccion:cli.direccion||'',telefono:cli.telefono||''};});return{totalComprados:64,totalEntregados:CLIENTES_DISPENSER.size,totalReservados:CLIENTES_DISPENSER_RESERVADO.size,clientes:clientesDisp,reservados};}
+function buildDispensersPayload(){const mes=getMesActual();const clientesDisp=[...CLIENTES_DISPENSER].map(nombre=>{const cli=CLIENTES.find(c=>c.nombre===nombre)||{nombre,direccion:'',telefono:''};const bidonesEsteMes=dispenserMes[nombre]?.mes===mes?(dispenserMes[nombre]?.cant||0):0;const pagado=abonosPagados[nombre]===mes;const deuda=pagado?0:precios.pdisp;return{nombre,direccion:cli.direccion||'',telefono:cli.telefono||'',pagado,deuda,bidonesEsteMes};}).sort((a,b)=>a.nombre.localeCompare(b.nombre));const reservados=[...CLIENTES_DISPENSER_RESERVADO].map(nombre=>{const cli=CLIENTES.find(c=>c.nombre===nombre)||{nombre,direccion:'',telefono:''};return{nombre,direccion:cli.direccion||'',telefono:cli.telefono||''};});return{totalComprados:64,totalEntregados:CLIENTES_DISPENSER.size,totalReservados:CLIENTES_DISPENSER_RESERVADO.size,clientes:clientesDisp,reservados};}
 
 // ---- AUTO-RECARGA ----
 let autoReloadTimer=null;
@@ -1238,7 +1261,7 @@ function cargarEstado(){
     if(e.ventas)ventas=e.ventas.map(v=>({...v,hora:new Date(v.hora)}));
     if(e.pedidos)pedidos=e.pedidos;
     if(e.gastos)gastos=e.gastos.map(g=>{const gasto={...g,hora:new Date(g.hora)};if(gasto.bid20===undefined||gasto.bid10===undefined){const pN=(nota,pat)=>{const m=nota?nota.match(new RegExp(pat)):null;return m?parseInt(m[1]):0;};gasto.bid20=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*20L');gasto.bid10=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*10L');}return gasto;});
-    if(e.deudas)Object.assign(deudas,e.deudas);if(e.bCasa)Object.assign(bCasa,e.bCasa);if(e.dispenserMes)Object.assign(dispenserMes,e.dispenserMes);if(e.abonosPagados)Object.assign(abonosPagados,e.abonosPagados);
+    if(e.deudas)Object.assign(deudas,e.deudas);if(e.bCasa)Object.assign(bCasa,e.bCasa);if(e.dispenserMes)Object.assign(dispenserMes,e.dispenserMes);if(e.abonosPagados)Object.assign(abonosPagados,e.abonosPagados);recalcularDesdeVentas(e.ventas||ventas);
     if(e.clientes&&e.clientes.length){CLIENTES.length=0;CLIENTES_BASE_NOMBRES.clear();e.clientes.forEach(c=>{CLIENTES.push(c);CLIENTES_BASE_NOMBRES.add(c.nombre);if(!bCasa[c.nombre])bCasa[c.nombre]={b20:0,b10:0};if(deudas[c.nombre]===undefined)deudas[c.nombre]=0;});}
     if(e.dispenserActivos){CLIENTES_DISPENSER.clear();e.dispenserActivos.forEach(n=>CLIENTES_DISPENSER.add(n));}
     if(e.dispenserReservados){CLIENTES_DISPENSER_RESERVADO.clear();e.dispenserReservados.forEach(n=>CLIENTES_DISPENSER_RESERVADO.add(n));}
@@ -1267,7 +1290,7 @@ async function cargarDesdeSheets(url){
     if(d.dispenserActivos){CLIENTES_DISPENSER.clear();d.dispenserActivos.forEach(n=>CLIENTES_DISPENSER.add(n));}
     if(d.dispenserReservados){CLIENTES_DISPENSER_RESERVADO.clear();d.dispenserReservados.forEach(n=>CLIENTES_DISPENSER_RESERVADO.add(n));}
     if(d.deudas&&Object.keys(d.deudas).length){Object.keys(deudas).forEach(k=>{deudas[k]=0;});Object.assign(deudas,d.deudas);}
-    if(d.ventas&&d.ventas.length)ventas=d.ventas.map(v=>({...v,hora:v.hora?new Date(v.hora):new Date(),dev20:v.dev20||0,dev10:v.dev10||0,nuevaDeuda:0,deudaSaldada:0}));
+    if(d.ventas&&d.ventas.length){ventas=d.ventas.map(v=>({...v,hora:v.hora?new Date(v.hora):new Date(),dev20:v.dev20||0,dev10:v.dev10||0,nuevaDeuda:0,deudaSaldada:0}));recalcularDesdeVentas(ventas);}
     if(d.pedidos&&d.pedidos.length)pedidos=d.pedidos;
     if(d.gastos&&d.gastos.length)gastos=d.gastos.map(g=>{const gasto={...g,hora:new Date(g.hora)};if(gasto.bid20===undefined||gasto.bid10===undefined){const pN=(nota,pat)=>{const m=nota?nota.match(new RegExp(pat)):null;return m?parseInt(m[1]):0;};gasto.bid20=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*20L');gasto.bid10=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*10L');}return gasto;});
     if(d.stockInicial){Object.assign(stockInicial,d.stockInicial);guardarCacheStockInicial();}

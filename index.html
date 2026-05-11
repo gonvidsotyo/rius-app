@@ -547,7 +547,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.6.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.7.0</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -559,7 +559,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.6.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.7.0</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -919,6 +919,12 @@ function eliminarCliente(nombre){
 // ---- SYNC CLIENTE ----
 async function sincronizarNuevoCliente(cliente){const url=localStorage.getItem('scriptUrl')||'';if(!url||!url.startsWith('https://script.google.com'))return;try{await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({tipo:'nuevo-cliente',cliente})});}catch(e){}}
 async function sincronizarEdicionCliente(nombreOriginal,clienteActualizado){const url=localStorage.getItem('scriptUrl')||'';if(!url||!url.startsWith('https://script.google.com'))return;try{await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({tipo:'editar-cliente',nombreOriginal,cliente:clienteActualizado})});}catch(e){}}
+async function sincronizarDispensersLista(){
+  const url=localStorage.getItem('scriptUrl')||'';if(!url||!url.startsWith('https://script.google.com'))return;
+  const activos=[...CLIENTES_DISPENSER];
+  const reservados=[...CLIENTES_DISPENSER_RESERVADO];
+  try{await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({tipo:'dispensers-lista',activos,reservados})});}catch(e){}
+}
 
 // ---- PAGO ----
 function selPago(tipo){
@@ -1010,12 +1016,12 @@ function registrarVenta(){
     total=precios.pdisp+ber*precios.p20;ganancia=precios.pdisp+ber*(precios.p20-precios.c20);
     const d20=nb20r>0?nb20r+' bid.20L':'',d10=nb10r>0?nb10r+' bid.10L':'';const tdya=cliSel&&tieneDispenser(cliSel.nombre);
     nombreVenta=(tdya?'Alquiler dispenser':'Entrega dispenser')+(d20||d10?' + '+[d20,d10].filter(Boolean).join('+'):'');
-    if(cliSel&&!tdya){CLIENTES_DISPENSER.add(cliSel.nombre);CLIENTES_DISPENSER_RESERVADO.delete(cliSel.nombre);if(pagoActual!=='nopago')deudas[cliSel.nombre]=0;}
+    if(cliSel&&!tdya){CLIENTES_DISPENSER.add(cliSel.nombre);CLIENTES_DISPENSER_RESERVADO.delete(cliSel.nombre);if(pagoActual!=='nopago')deudas[cliSel.nombre]=0;sincronizarDispensersLista();}
     if(cliSel){const b=bCasa[cliSel.nombre]||{b20:0,b10:0};b.b20+=nb20r;b.b10+=nb10r;bCasa[cliSel.nombre]=b;bCasaModificado.add(cliSel.nombre);}
     if(cliSel){const mes=getMesActual(),n=cliSel.nombre;if(!dispenserMes[n]||dispenserMes[n].mes!==mes)dispenserMes[n]={mes,cant:0};dispenserMes[n].cant+=tbr;}
     bidDisp.bd20=0;bidDisp.bd10=0;document.getElementById('bd20').textContent='0';document.getElementById('bd10').textContent='0';
     if(cliSel&&(dev.dev20>0||dev.dev10>0)){const b=bCasa[cliSel.nombre]||{b20:0,b10:0};b.b20=Math.max(0,b.b20-dev.dev20);b.b10=Math.max(0,b.b10-dev.dev10);bCasa[cliSel.nombre]=b;bCasaModificado.add(cliSel.nombre);}
-  }else if(key==='devdisp|0|0'){total=0;ganancia=0;nombreVenta='Devol. dispenser';if(cliSel)CLIENTES_DISPENSER.delete(cliSel.nombre);}
+  }else if(key==='devdisp|0|0'){total=0;ganancia=0;nombreVenta='Devol. dispenser';if(cliSel){CLIENTES_DISPENSER.delete(cliSel.nombre);sincronizarDispensersLista();}}
   else{total=precios.pdisp*cant;ganancia=precios.pdisp*cant;nombreVenta='Alquiler dispenser';}
   const pagarDeuda=document.getElementById('pagar-deuda-check')?.checked&&pagoActual!=='nopago';
   const cobrarAbono=document.getElementById('cobrar-abono-check')?.checked&&pagoActual!=='nopago';

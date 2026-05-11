@@ -547,7 +547,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.4.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.5.0</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -559,7 +559,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.4.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.5.0</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -668,12 +668,8 @@ function pagarAbono(nombre){
   });
   guardarEstado();sincAuto();calcularStock();actualizarResumen();
 }
-function guardarAbonosPagados(){
-  try{localStorage.setItem('riusAbonosPagados',JSON.stringify(abonosPagados));}catch(e){}
-}
-function cargarAbonosPagados(){
-  try{const r=localStorage.getItem('riusAbonosPagados');if(r)Object.assign(abonosPagados,JSON.parse(r));}catch(e){}
-}
+function guardarAbonosPagados(){ /* abonosPagados se deriva de ventas, no se persiste por separado */ }
+function cargarAbonosPagados(){ /* abonosPagados se recalcula siempre desde ventas al cargar */ }
 function poblarSelectLocalidades(){
   const sel=document.getElementById('m-loc-sel');if(!sel)return;
   const cur=sel.value;sel.innerHTML='<option value="">— Seleccionar —</option>';
@@ -1253,7 +1249,7 @@ function iniciarAutoRecarga(){
 // ---- PERSISTENCIA ----
 const STORAGE_KEY='rius_v3';
 function guardarEstado(){
-  try{localStorage.setItem(STORAGE_KEY,JSON.stringify({ventas:ventas.map(v=>({...v,hora:new Date(v.hora).toISOString()})),gastos:gastos.map(g=>({...g,hora:new Date(g.hora).toISOString()})),pedidos,deudas:Object.fromEntries(Object.entries(deudas)),bCasa:Object.fromEntries(Object.entries(bCasa)),dispenserMes:Object.fromEntries(Object.entries(dispenserMes)),abonosPagados:Object.fromEntries(Object.entries(abonosPagados)),clientes:CLIENTES,dispenserActivos:[...CLIENTES_DISPENSER],dispenserReservados:[...CLIENTES_DISPENSER_RESERVADO]}));}catch(e){}
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify({ventas:ventas.map(v=>({...v,hora:new Date(v.hora).toISOString()})),gastos:gastos.map(g=>({...g,hora:new Date(g.hora).toISOString()})),pedidos,deudas:Object.fromEntries(Object.entries(deudas)),bCasa:Object.fromEntries(Object.entries(bCasa)),clientes:CLIENTES,dispenserActivos:[...CLIENTES_DISPENSER],dispenserReservados:[...CLIENTES_DISPENSER_RESERVADO]}));}catch(e){}
 }
 function cargarEstado(){
   try{
@@ -1261,7 +1257,10 @@ function cargarEstado(){
     if(e.ventas)ventas=e.ventas.map(v=>({...v,hora:new Date(v.hora)}));
     if(e.pedidos)pedidos=e.pedidos;
     if(e.gastos)gastos=e.gastos.map(g=>{const gasto={...g,hora:new Date(g.hora)};if(gasto.bid20===undefined||gasto.bid10===undefined){const pN=(nota,pat)=>{const m=nota?nota.match(new RegExp(pat)):null;return m?parseInt(m[1]):0;};gasto.bid20=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*20L');gasto.bid10=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*10L');}return gasto;});
-    if(e.deudas)Object.assign(deudas,e.deudas);if(e.bCasa)Object.assign(bCasa,e.bCasa);if(e.dispenserMes)Object.assign(dispenserMes,e.dispenserMes);if(e.abonosPagados)Object.assign(abonosPagados,e.abonosPagados);recalcularDesdeVentas(e.ventas||ventas);
+    if(e.deudas)Object.assign(deudas,e.deudas);
+    if(e.bCasa)Object.assign(bCasa,e.bCasa);
+    // dispenserMes y abonosPagados se recalculan siempre desde ventas (fuente de verdad = Sheets)
+    recalcularDesdeVentas(ventas);
     if(e.clientes&&e.clientes.length){CLIENTES.length=0;CLIENTES_BASE_NOMBRES.clear();e.clientes.forEach(c=>{CLIENTES.push(c);CLIENTES_BASE_NOMBRES.add(c.nombre);if(!bCasa[c.nombre])bCasa[c.nombre]={b20:0,b10:0};if(deudas[c.nombre]===undefined)deudas[c.nombre]=0;});}
     if(e.dispenserActivos){CLIENTES_DISPENSER.clear();e.dispenserActivos.forEach(n=>CLIENTES_DISPENSER.add(n));}
     if(e.dispenserReservados){CLIENTES_DISPENSER_RESERVADO.clear();e.dispenserReservados.forEach(n=>CLIENTES_DISPENSER_RESERVADO.add(n));}

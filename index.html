@@ -547,7 +547,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.5.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.6.0</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -559,7 +559,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.5.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.6.0</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -1304,7 +1304,8 @@ async function recargarDesdeSheets(){
   const url=localStorage.getItem('scriptUrl')||'';const btn=document.getElementById('btn-refresh');
   if(!url||!url.startsWith('https://script.google.com')){alert('Primero configurá la URL del script en ⚙️');return;}
   if(btn){btn.textContent='⏳';btn.disabled=true;}const ind=document.getElementById('sync-indicator');if(ind){ind.style.background='#FFF3CD';ind.style.color='#854F0B';ind.textContent='⏳ Cargando...';}
-  try{const ok=await cargarDesdeSheets(url);if(ok){guardarEstado();calcularStock();actualizarResumen();renderClientes(document.querySelector('#clientes .search-bar')?.value||'');renderPedidos();if(btn){btn.textContent='✓';setTimeout(()=>{btn.textContent='🔄';btn.disabled=false;},2000);}if(ind){ind.style.background='#E1F5EE';ind.style.color='#0F6E56';ind.textContent='✓ OK';}setTimeout(()=>{if(ind){ind.style.background='#EAF3DE';ind.style.color='#3B6D11';ind.textContent='En línea';}},3000);}else{if(btn){btn.textContent='✗';setTimeout(()=>{btn.textContent='🔄';btn.disabled=false;},2000);}if(ind){ind.style.background='#FDECEA';ind.style.color='#B42318';ind.textContent='✗ Error';}}}catch(e){if(btn){btn.textContent='✗';setTimeout(()=>{btn.textContent='🔄';btn.disabled=false;},2000);}}
+  try{const ok=await cargarDesdeSheets(url);if(ok){guardarEstado();calcularStock();actualizarResumen();renderClientes(document.querySelector('#clientes .search-bar')?.value||'');renderPedidos();sincAuto(); // sincronizar hacia Sheets con datos recalculados
+if(btn){btn.textContent='✓';setTimeout(()=>{btn.textContent='🔄';btn.disabled=false;},2000);}if(ind){ind.style.background='#E1F5EE';ind.style.color='#0F6E56';ind.textContent='✓ OK';}setTimeout(()=>{if(ind){ind.style.background='#EAF3DE';ind.style.color='#3B6D11';ind.textContent='En línea';}},3000);}else{if(btn){btn.textContent='✗';setTimeout(()=>{btn.textContent='🔄';btn.disabled=false;},2000);}if(ind){ind.style.background='#FDECEA';ind.style.color='#B42318';ind.textContent='✗ Error';}}}catch(e){if(btn){btn.textContent='✗';setTimeout(()=>{btn.textContent='🔄';btn.disabled=false;},2000);}}
 }
 
 // ---- INIT ----
@@ -1327,7 +1328,7 @@ window.addEventListener('load',async()=>{
         // Dispensers se cargan siempre, independientemente de si hay sesión activa
         if(d.dispenserActivos){CLIENTES_DISPENSER.clear();d.dispenserActivos.forEach(n=>CLIENTES_DISPENSER.add(n));}
         if(d.dispenserReservados){CLIENTES_DISPENSER_RESERVADO.clear();d.dispenserReservados.forEach(n=>CLIENTES_DISPENSER_RESERVADO.add(n));}
-        if(usuarioActual){if(d.ventas&&d.ventas.length)ventas=d.ventas.map(v=>({...v,hora:v.hora?new Date(v.hora):new Date(),dev20:v.dev20||0,dev10:v.dev10||0,nuevaDeuda:0,deudaSaldada:0}));if(d.pedidos&&d.pedidos.length)pedidos=d.pedidos;if(d.gastos&&d.gastos.length)gastos=d.gastos.map(g=>({...g,hora:new Date(g.hora),bid20:g.bid20||0,bid10:g.bid10||0}));if(d.clientes&&d.clientes.length){CLIENTES.length=0;CLIENTES_BASE_NOMBRES.clear();Object.keys(bCasa).forEach(k=>{delete bCasa[k];});d.clientes.forEach(c=>{if(!c.nombre)return;CLIENTES.push({nombre:c.nombre,localidad:c.localidad||'',direccion:c.direccion||'',telefono:c.telefono||''});CLIENTES_BASE_NOMBRES.add(c.nombre);bCasa[c.nombre]={b20:Number(c.b20)||0,b10:Number(c.b10)||0};if(!deudas[c.nombre])deudas[c.nombre]=0;});}if(d.deudas&&Object.keys(d.deudas).length)Object.assign(deudas,d.deudas);if(d.stockInicial)Object.assign(stockInicial,d.stockInicial);if(d.localidades&&d.localidades.length){const seen=new Set();localidades=d.localidades.filter(l=>{const k=l.toLowerCase().trim();if(seen.has(k))return false;seen.add(k);return true;}).sort((a,b)=>a.localeCompare(b,'es'));poblarSelectLocalidades();}bCasaModificado.clear();guardarCacheStockInicial();guardarEstado();calcularStock();calcTotal();actualizarDev();actualizarResumen();renderPedidos();}
+        if(usuarioActual){if(d.ventas&&d.ventas.length)ventas=d.ventas.map(v=>({...v,hora:v.hora?new Date(v.hora):new Date(),dev20:v.dev20||0,dev10:v.dev10||0,nuevaDeuda:0,deudaSaldada:0}));if(d.pedidos&&d.pedidos.length)pedidos=d.pedidos;if(d.gastos&&d.gastos.length)gastos=d.gastos.map(g=>({...g,hora:new Date(g.hora),bid20:g.bid20||0,bid10:g.bid10||0}));if(d.clientes&&d.clientes.length){CLIENTES.length=0;CLIENTES_BASE_NOMBRES.clear();Object.keys(bCasa).forEach(k=>{delete bCasa[k];});d.clientes.forEach(c=>{if(!c.nombre)return;CLIENTES.push({nombre:c.nombre,localidad:c.localidad||'',direccion:c.direccion||'',telefono:c.telefono||''});CLIENTES_BASE_NOMBRES.add(c.nombre);bCasa[c.nombre]={b20:Number(c.b20)||0,b10:Number(c.b10)||0};if(!deudas[c.nombre])deudas[c.nombre]=0;});}if(d.deudas&&Object.keys(d.deudas).length)Object.assign(deudas,d.deudas);if(d.stockInicial)Object.assign(stockInicial,d.stockInicial);if(d.localidades&&d.localidades.length){const seen=new Set();localidades=d.localidades.filter(l=>{const k=l.toLowerCase().trim();if(seen.has(k))return false;seen.add(k);return true;}).sort((a,b)=>a.localeCompare(b,'es'));poblarSelectLocalidades();}bCasaModificado.clear();guardarCacheStockInicial();recalcularDesdeVentas(ventas);guardarEstado();calcularStock();calcTotal();actualizarDev();actualizarResumen();renderPedidos();sincAuto();}
         if(ind){ind.style.background='#EAF3DE';ind.style.color='#3B6D11';ind.textContent='En línea';}}
     }catch(e){if(ind){ind.style.background='#EAF3DE';ind.style.color='#3B6D11';ind.textContent='Sin conexión';}}
   }

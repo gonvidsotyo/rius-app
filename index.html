@@ -554,7 +554,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.17.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.18.0</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -566,7 +566,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.17.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.18.0</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -1257,9 +1257,29 @@ function calcMontoEstimadoPedido(){
 }
 function registrarPedido(){
   if(!cliSelPedido){alert('Seleccioná un cliente');return;}
-  const prod=document.getElementById('ped-prod');const prodNombre=prod.options[prod.selectedIndex].text;const cant=parseInt(document.getElementById('ped-cant').value)||1;const fecha=document.getElementById('ped-fecha').value;const nota=document.getElementById('ped-nota').value.trim();
+  const prod=document.getElementById('ped-prod');const prodKey=prod.value;const prodNombre=prod.options[prod.selectedIndex].text;const cant=parseInt(document.getElementById('ped-cant').value)||1;const fecha=document.getElementById('ped-fecha').value;const nota=document.getElementById('ped-nota').value.trim();
   if(!fecha){alert('Seleccioná una fecha');return;}
-  pedidos.push({id:Date.now(),cliente:cliSelPedido.nombre,telefono:cliSelPedido.telefono||'',prodKey:prod.value,prodNombre,cant,fecha,nota,hora:new Date().toISOString(),usuario:usuarioActual||'',pago:pedPagoActual});
+  // Verificar stock de dispensers si es pedido de dispenser frío/calor
+  if(prodKey==='disp-fc|0|0'){
+    const dispDep=parseInt(document.getElementById('st-depdisp')?.textContent)||0;
+    const yaEsActivo=CLIENTES_DISPENSER.has(cliSelPedido.nombre);
+    const yaEsReservado=CLIENTES_DISPENSER_RESERVADO.has(cliSelPedido.nombre);
+    if(dispDep<=0&&!yaEsActivo){
+      // Sin stock — avisar pero dejar continuar
+      const continuar=confirm(`⚠️ Sin stock de dispensers en depósito (${dispDep} disponibles).\n\n¿Querés registrar el pedido igual? El cliente quedará en lista de RESERVADOS.`);
+      if(!continuar)return;
+      // Agregar a reservados
+      if(!yaEsReservado&&!yaEsActivo){
+        CLIENTES_DISPENSER_RESERVADO.add(cliSelPedido.nombre);
+        sincronizarDispensersLista();
+      }
+    } else if(dispDep>0&&!yaEsActivo&&!yaEsReservado){
+      // Hay stock — agregar a reservados de todas formas hasta que se entregue
+      CLIENTES_DISPENSER_RESERVADO.add(cliSelPedido.nombre);
+      sincronizarDispensersLista();
+    }
+  }
+  pedidos.push({id:Date.now(),cliente:cliSelPedido.nombre,telefono:cliSelPedido.telefono||'',prodKey,prodNombre,cant,fecha,nota,hora:new Date().toISOString(),usuario:usuarioActual||'',pago:pedPagoActual});
   limpiarClientePedido();document.getElementById('ped-cant').value=1;document.getElementById('ped-cant-display').textContent='1';document.getElementById('ped-nota').value='';pedPagoActual='pendiente';selPedPago('pendiente');
   guardarEstado();sincAuto();renderPedidos();
 }

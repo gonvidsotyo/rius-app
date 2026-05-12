@@ -554,7 +554,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.20.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.0</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -566,7 +566,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.20.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.0</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -623,7 +623,12 @@ const deudas={};
 window._confirmarAbono=function(nombreEnc,tipoPago){
   const nombre=decodeURIComponent(nombreEnc);
   abonosPagados[nombre]=getMesAbono();
-  ventas.unshift({nombre:'Abono dispenser',cant:1,total:precios.pdisp,ganancia:precios.pdisp,hora:new Date(),cliente:nombre,usuario:usuarioActual||'',dev20:0,dev10:0,pago:tipoPago,deudaSaldada:0,nuevaDeuda:0});
+  // Limpiar deuda del abono — puede ser exactamente el precio del dispenser
+  // o puede haber quedado acumulada con otras deudas
+  const deudaActual=deudas[nombre]||0;
+  const deudaSaldada=Math.min(deudaActual,precios.pdisp);
+  if(deudaSaldada>0)deudas[nombre]=Math.max(0,deudaActual-deudaSaldada);
+  ventas.unshift({nombre:'Abono dispenser',cant:1,total:precios.pdisp,ganancia:precios.pdisp,hora:new Date(),cliente:nombre,usuario:usuarioActual||'',dev20:0,dev10:0,pago:tipoPago,deudaSaldada,nuevaDeuda:0});
   guardarEstado();sincAuto();calcularStock();actualizarResumen();
   renderClientes(document.querySelector('#clientes .search-bar')?.value||'');
 };

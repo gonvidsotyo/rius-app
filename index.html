@@ -554,7 +554,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.14.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.15.0</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -566,7 +566,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.14.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.15.0</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -862,8 +862,8 @@ function renderClientes(q){
     else if(action==='editar'){abrirModalEditarCliente(nombre);}
     else if(action==='eliminar'){eliminarCliente(nombre);}
     else if(action==='cobrar-abono'){
-      // Crear modal inline para seleccionar forma de pago
       const exM=document.getElementById('_abono_modal');if(exM)exM.remove();
+      window._abonoTipoPago='efectivo';
       const modal=document.createElement('div');modal.id='_abono_modal';
       modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
       modal.innerHTML=`<div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:320px;">
@@ -871,17 +871,12 @@ function renderClientes(q){
         <div style="font-size:13px;color:#555;margin-bottom:16px;">Abono dispenser de <b>${nombre}</b><br>${fmt(precios.pdisp)}</div>
         <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Forma de pago</div>
         <div style="display:flex;gap:8px;margin-bottom:20px;">
-          <button id="_ab_ef" onclick="document.getElementById('_ab_ef').style.background='#185FA5';document.getElementById('_ab_ef').style.color='#fff';document.getElementById('_ab_tr').style.background='#f2f2f7';document.getElementById('_ab_tr').style.color='#333';" style="flex:1;padding:10px;border:1.5px solid #185FA5;border-radius:10px;background:#185FA5;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">💵 Efectivo</button>
-          <button id="_ab_tr" onclick="document.getElementById('_ab_tr').style.background='#185FA5';document.getElementById('_ab_tr').style.color='#fff';document.getElementById('_ab_ef').style.background='#f2f2f7';document.getElementById('_ab_ef').style.color='#333';" style="flex:1;padding:10px;border:1.5px solid #e5e5ea;border-radius:10px;background:#f2f2f7;color:#333;font-size:13px;font-weight:600;cursor:pointer;">📲 Transferencia</button>
+          <button id="_ab_ef" onclick="window._abonoTipoPago='efectivo';document.getElementById('_ab_ef').style.cssText='flex:1;padding:10px;border:1.5px solid #185FA5;border-radius:10px;background:#185FA5;color:#fff;font-size:13px;font-weight:600;cursor:pointer;';document.getElementById('_ab_tr').style.cssText='flex:1;padding:10px;border:1.5px solid #e5e5ea;border-radius:10px;background:#f2f2f7;color:#333;font-size:13px;font-weight:600;cursor:pointer;';" style="flex:1;padding:10px;border:1.5px solid #185FA5;border-radius:10px;background:#185FA5;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">💵 Efectivo</button>
+          <button id="_ab_tr" onclick="window._abonoTipoPago='transferencia';document.getElementById('_ab_tr').style.cssText='flex:1;padding:10px;border:1.5px solid #185FA5;border-radius:10px;background:#185FA5;color:#fff;font-size:13px;font-weight:600;cursor:pointer;';document.getElementById('_ab_ef').style.cssText='flex:1;padding:10px;border:1.5px solid #e5e5ea;border-radius:10px;background:#f2f2f7;color:#333;font-size:13px;font-weight:600;cursor:pointer;';" style="flex:1;padding:10px;border:1.5px solid #e5e5ea;border-radius:10px;background:#f2f2f7;color:#333;font-size:13px;font-weight:600;cursor:pointer;">📲 Transferencia</button>
         </div>
         <div style="display:flex;gap:8px;">
           <button onclick="document.getElementById('_abono_modal').remove();" style="flex:1;padding:11px;border:1.5px solid #e5e5ea;border-radius:10px;background:#f2f2f7;color:#333;font-size:14px;font-weight:600;cursor:pointer;">Cancelar</button>
-          <button onclick="
-            const ef=document.getElementById('_ab_ef').style.background==='rgb(24, 95, 165)';
-            const tp=ef?'efectivo':'transferencia';
-            document.getElementById('_abono_modal').remove();
-            window._confirmarAbono('${encodeURIComponent(nombre)}',tp);
-          " style="flex:1;padding:11px;border:none;border-radius:10px;background:#185FA5;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">Confirmar</button>
+          <button onclick="const tp=window._abonoTipoPago;document.getElementById('_abono_modal').remove();window._confirmarAbono('${encodeURIComponent(nombre)}',tp);" style="flex:1;padding:11px;border:none;border-radius:10px;background:#185FA5;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">Confirmar</button>
         </div>
       </div>`;
       document.body.appendChild(modal);

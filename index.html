@@ -554,7 +554,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.16.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.17.0</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -566,7 +566,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.16.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.17.0</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -1075,7 +1075,9 @@ function eliminarVenta(idx){
   const v=ventas[idx];if(!v)return;
   if(!confirm(`¿Eliminar la venta "${v.nombre}${v.cliente?' · '+v.cliente:''}" por ${fmt(v.total)}?`))return;
   if(v.cliente){const nomCli=v.cliente;if(v.nuevaDeuda>0)deudas[nomCli]=Math.max(0,(deudas[nomCli]||0)-v.nuevaDeuda);if(v.deudaSaldada>0)deudas[nomCli]=(deudas[nomCli]||0)+v.deudaSaldada;if(v.nombre==='Pago')deudas[nomCli]=(deudas[nomCli]||0)+v.total;const b=bCasa[nomCli];if(b){if(v.nombre&&(v.nombre.includes('20L')||v.nombre.includes('Bidón 20')))b.b20=Math.max(0,b.b20-v.cant);if(v.nombre&&(v.nombre.includes('10L')||v.nombre.includes('Bidón 10')))b.b10=Math.max(0,b.b10-v.cant);if(v.dev20>0)b.b20=b.b20+v.dev20;if(v.dev10>0)b.b10=b.b10+v.dev10;bCasaModificado.add(nomCli);}}
-  ventas.splice(idx,1);calcularStock();actualizarResumen();guardarEstado();sincAuto();
+  ventas.splice(idx,1);
+  recalcularDesdeVentas(ventas); // recalcular abonos y dispenserMes antes de sincronizar
+  calcularStock();actualizarResumen();guardarEstado();sincAuto();
 }
 
 // ---- RESUMEN ----

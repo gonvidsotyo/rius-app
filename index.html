@@ -554,7 +554,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.15.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.16.0</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -566,7 +566,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.15.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.16.0</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -1375,7 +1375,13 @@ async function cargarDesdeSheets(url){
     if(d.ventas&&d.ventas.length){
       const ventasSheets=d.ventas.map(v=>({...v,hora:v.hora?new Date(v.hora):new Date(),dev20:v.dev20||0,dev10:v.dev10||0,nuevaDeuda:0,deudaSaldada:0}));
       const masReciente=ventasSheets.reduce((max,v)=>new Date(v.hora)>max?new Date(v.hora):max,new Date(0));
-      const offline=ventas.filter(v=>new Date(v.hora)>masReciente);
+      // Solo conservar ventas locales que sean MÁS NUEVAS que las de Sheets Y que no existan en Sheets
+      // (evitar duplicados cuando la venta ya fue sincronizada)
+      const horasSheets=new Set(ventasSheets.map(v=>new Date(v.hora).toISOString()));
+      const offline=ventas.filter(v=>{
+        const horaISO=new Date(v.hora).toISOString();
+        return new Date(v.hora)>masReciente && !horasSheets.has(horaISO);
+      });
       ventas=[...offline,...ventasSheets];
       ventas.sort((a,b)=>new Date(b.hora)-new Date(a.hora));
       recalcularDesdeVentas(ventas);
@@ -1385,7 +1391,8 @@ async function cargarDesdeSheets(url){
     if(d.gastos&&d.gastos.length){
       const gastosSheets=d.gastos.map(g=>{const gasto={...g,hora:new Date(g.hora)};if(gasto.bid20===undefined||gasto.bid10===undefined){const pN=(nota,pat)=>{const m=nota?nota.match(new RegExp(pat)):null;return m?parseInt(m[1]):0;};gasto.bid20=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*20L');gasto.bid10=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*10L');}return gasto;});
       const masRecienteG=gastosSheets.reduce((max,g)=>new Date(g.hora)>max?new Date(g.hora):max,new Date(0));
-      const offlineG=gastos.filter(g=>new Date(g.hora)>masRecienteG);
+      const horasGSheets=new Set(gastosSheets.map(g=>new Date(g.hora).toISOString()));
+      const offlineG=gastos.filter(g=>new Date(g.hora)>masRecienteG&&!horasGSheets.has(new Date(g.hora).toISOString()));
       gastos=[...offlineG,...gastosSheets];
       gastos.sort((a,b)=>new Date(b.hora)-new Date(a.hora));
     }

@@ -554,7 +554,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.10.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.12.0</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -566,7 +566,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.10.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.12.0</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -793,7 +793,7 @@ function guardarNuevoCliente(){
   const n=document.getElementById('m-nombre').value.trim();if(!n){document.getElementById('m-nombre').focus();return;}
   const d=document.getElementById('m-dir').value.trim();const loc=document.getElementById('m-loc').value.trim();const t=document.getElementById('m-tel').value.trim();
   const nuevoCliente={nombre:n,localidad:loc,direccion:d,telefono:t};
-  if(!CLIENTES.find(x=>x.nombre===n)){CLIENTES.push(nuevoCliente);ordenarClientes();bCasa[n]={b20:0,b10:0};deudas[n]=0;sincronizarNuevoCliente(nuevoCliente);}
+  if(!CLIENTES.find(x=>x.nombre===n)){CLIENTES.push(nuevoCliente);ordenarClientes();bCasa[n]={b20:0,b10:0};deudas[n]=0;agregarACola({tipo:'nuevo-cliente',cliente:nuevoCliente});sincronizarNuevoCliente(nuevoCliente);}
   cerrarModalCliente();
   if(modalNuevoClienteTarget==='pedido')selCliPedido(n);
   else if(modalNuevoClienteTarget==='lista')renderClientes(document.querySelector('#clientes .search-bar')?.value||'');
@@ -908,7 +908,7 @@ function abrirModalEditarCliente(nombre){
       if(CLIENTES_DISPENSER_RESERVADO.has(orig)){CLIENTES_DISPENSER_RESERVADO.delete(orig);CLIENTES_DISPENSER_RESERVADO.add(nn);}
       CLIENTES_BASE_NOMBRES.delete(orig);CLIENTES_BASE_NOMBRES.add(nn);bCasaModificado.add(nn);
     }else{bCasaModificado.add(nn);}
-    ov.remove();sincronizarEdicionCliente(orig,c);guardarEstado();
+    ov.remove();agregarACola({tipo:'editar-cliente',nombreOriginal:orig,cliente:c});sincronizarEdicionCliente(orig,c);guardarEstado();
     renderClientes(document.querySelector('#clientes .search-bar')?.value||'');
   };
   setTimeout(()=>document.getElementById('_rec_nom')?.focus(),100);
@@ -920,6 +920,7 @@ function eliminarCliente(nombre){
   const idx=CLIENTES.findIndex(x=>x.nombre===nombre);if(idx===-1)return;
   CLIENTES.splice(idx,1);CLIENTES_BASE_NOMBRES.delete(nombre);CLIENTES_DISPENSER.delete(nombre);CLIENTES_DISPENSER_RESERVADO.delete(nombre);
   delete bCasa[nombre];delete deudas[nombre];
+  agregarACola({tipo:'eliminar-cliente',nombre});
   const url=localStorage.getItem('scriptUrl')||'';
   if(url&&url.startsWith('https://script.google.com'))fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({tipo:'eliminar-cliente',nombre})}).catch(()=>{});
   guardarEstado();ordenarClientes();renderClientes(document.querySelector('#clientes .search-bar')?.value||'');
@@ -1280,6 +1281,30 @@ function iniciarAutoRecarga(){
 
 // ---- PERSISTENCIA ----
 const STORAGE_KEY='rius_v3';
+const COLA_KEY='rius_cola_pendientes';
+
+// ---- COLA DE OPERACIONES OFFLINE ----
+let colaPendientes=[];
+function cargarCola(){try{const r=localStorage.getItem(COLA_KEY);if(r)colaPendientes=JSON.parse(r);}catch(e){colaPendientes=[];}}
+function guardarCola(){try{localStorage.setItem(COLA_KEY,JSON.stringify(colaPendientes));}catch(e){}}
+function agregarACola(op){colaPendientes.push({...op,ts:new Date().toISOString()});guardarCola();}
+async function procesarCola(url){
+  if(!colaPendientes.length)return;
+  const pendientes=[...colaPendientes];
+  const fallidas=[];
+  for(const op of pendientes){
+    try{
+      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(op)});
+      const json=await res.json();
+      if(!json.ok)fallidas.push(op);
+    }catch(e){fallidas.push(op);}
+  }
+  colaPendientes=fallidas;
+  guardarCola();
+  if(fallidas.length>0)console.warn(`⚠️ ${fallidas.length} operación(es) pendiente(s) sin sync`);
+  else console.log('✅ Cola offline procesada');
+}
+
 function guardarEstado(){
   try{localStorage.setItem(STORAGE_KEY,JSON.stringify({ventas:ventas.map(v=>({...v,hora:new Date(v.hora).toISOString()})),gastos:gastos.map(g=>({...g,hora:new Date(g.hora).toISOString()})),pedidos,deudas:Object.fromEntries(Object.entries(deudas)),bCasa:Object.fromEntries(Object.entries(bCasa)),clientes:CLIENTES,dispenserActivos:[...CLIENTES_DISPENSER],dispenserReservados:[...CLIENTES_DISPENSER_RESERVADO]}));}catch(e){}
 }
@@ -1302,14 +1327,18 @@ function cargarEstado(){
 
 // ---- SYNC ----
 let syncTimer=null;
+cargarCola(); // cargar operaciones pendientes offline al iniciar
 function sincAuto(){
   const ind=document.getElementById('sync-indicator');if(ind){ind.style.background='#FFF3CD';ind.style.color='#854F0B';ind.textContent='⏳ Sincronizando...';}
   clearTimeout(syncTimer);
   syncTimer=setTimeout(async()=>{
     const url=localStorage.getItem('scriptUrl')||'';if(!url||!url.startsWith('https://script.google.com')){if(ind){ind.style.background='#EAF3DE';ind.style.color='#3B6D11';ind.textContent='En línea';}return;}
+    // Primero procesar cola de operaciones offline pendientes
+    if(colaPendientes.length>0){if(ind)ind.textContent=`⏳ Enviando ${colaPendientes.length} cambio(s) offline...`;await procesarCola(url);}
     const cData=bCasaModificado.size>0?CLIENTES.filter(c=>bCasaModificado.has(c.nombre)).map(c=>({...c,b20:bCasa[c.nombre]?.b20||0,b10:bCasa[c.nombre]?.b10||0})):[];
     const payload={tipo:'todo',ventas,stock,clientes:cData,deudas,gastos,pedidos,dispensers:buildDispensersPayload()};
-    try{const res=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});const json=await res.json();if(json.ok){if(ind){ind.style.background='#E1F5EE';ind.style.color='#0F6E56';ind.textContent='✓ Sheets OK';}setTimeout(()=>{if(ind){ind.style.background='#EAF3DE';ind.style.color='#3B6D11';ind.textContent='En línea';}},3000);}else throw new Error();}catch(e){if(ind){ind.style.background='#FDECEA';ind.style.color='#B42318';ind.textContent='✗ Sin sync';}}
+    try{const res=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});const json=await res.json();if(json.ok){if(ind){ind.style.background='#E1F5EE';ind.style.color='#0F6E56';ind.textContent='✓ Sheets OK';}setTimeout(()=>{if(ind){ind.style.background='#EAF3DE';ind.style.color='#3B6D11';ind.textContent='En línea';}},3000);}else throw new Error();}
+    catch(e){if(ind){ind.style.background='#FDECEA';ind.style.color='#B42318';ind.textContent=colaPendientes.length>0?`✗ ${colaPendientes.length} pendiente(s)`:'✗ Sin sync';}}
   },1500);
 }
 function guardarUrl(){const url=document.getElementById('script-url').value.trim();try{localStorage.setItem('scriptUrl',url);}catch(e){}const el=document.getElementById('url-estado');if(url.startsWith('https://script.google.com')){el.style.display='block';el.style.color='#3B6D11';el.textContent='✓ URL guardada';}else if(url.length>0){el.style.display='block';el.style.color='#B42318';el.textContent='⚠ URL no válida';}else el.style.display='none';}
@@ -1317,13 +1346,29 @@ function guardarUrl(){const url=document.getElementById('script-url').value.trim
 async function cargarDesdeSheets(url){
   try{
     const res=await fetch(url+'?accion=leer');const json=await res.json();if(!json.ok||!json.datos)return false;const d=json.datos;
-    if(d.clientes&&d.clientes.length){CLIENTES.length=0;CLIENTES_BASE_NOMBRES.clear();Object.keys(bCasa).forEach(k=>{delete bCasa[k];});d.clientes.forEach(c=>{if(!c.nombre)return;CLIENTES.push({nombre:c.nombre,localidad:c.localidad||'',direccion:c.direccion||'',telefono:c.telefono||''});CLIENTES_BASE_NOMBRES.add(c.nombre);bCasa[c.nombre]={b20:Number(c.b20)||0,b10:Number(c.b10)||0};if(!deudas[c.nombre])deudas[c.nombre]=0;});}
+    if(d.clientes&&d.clientes.length){CLIENTES.length=0;CLIENTES_BASE_NOMBRES.clear();Object.keys(bCasa).forEach(k=>{delete bCasa[k];});d.clientes.forEach(c=>{if(!c.nombre)return;CLIENTES.push({nombre:c.nombre,localidad:c.localidad||'',direccion:c.direccion||'',telefono:c.telefono||''});CLIENTES_BASE_NOMBRES.add(c.nombre);bCasa[c.nombre]={b20:Number(c.b20)||0,b10:Number(c.b10)||0};if(!deudas[c.nombre])deudas[c.nombre]=0;});ordenarClientes();}
     if(d.dispenserActivos){CLIENTES_DISPENSER.clear();d.dispenserActivos.forEach(n=>CLIENTES_DISPENSER.add(n));}
     if(d.dispenserReservados){CLIENTES_DISPENSER_RESERVADO.clear();d.dispenserReservados.forEach(n=>CLIENTES_DISPENSER_RESERVADO.add(n));}
     if(d.deudas&&Object.keys(d.deudas).length){Object.keys(deudas).forEach(k=>{deudas[k]=0;});Object.assign(deudas,d.deudas);}
-    if(d.ventas&&d.ventas.length){ventas=d.ventas.map(v=>({...v,hora:v.hora?new Date(v.hora):new Date(),dev20:v.dev20||0,dev10:v.dev10||0,nuevaDeuda:0,deudaSaldada:0}));recalcularDesdeVentas(ventas);}
+    // MERGE ventas: conservar ventas offline más nuevas que la última en Sheets
+    if(d.ventas&&d.ventas.length){
+      const ventasSheets=d.ventas.map(v=>({...v,hora:v.hora?new Date(v.hora):new Date(),dev20:v.dev20||0,dev10:v.dev10||0,nuevaDeuda:0,deudaSaldada:0}));
+      const masReciente=ventasSheets.reduce((max,v)=>new Date(v.hora)>max?new Date(v.hora):max,new Date(0));
+      const offline=ventas.filter(v=>new Date(v.hora)>masReciente);
+      ventas=[...offline,...ventasSheets];
+      ventas.sort((a,b)=>new Date(b.hora)-new Date(a.hora));
+      recalcularDesdeVentas(ventas);
+      if(offline.length>0){console.log(`✅ Merge offline: ${offline.length} venta(s) conservada(s)`);setTimeout(()=>sincAuto(),500);}
+    }
+    // MERGE gastos: conservar gastos offline más nuevos que los de Sheets
+    if(d.gastos&&d.gastos.length){
+      const gastosSheets=d.gastos.map(g=>{const gasto={...g,hora:new Date(g.hora)};if(gasto.bid20===undefined||gasto.bid10===undefined){const pN=(nota,pat)=>{const m=nota?nota.match(new RegExp(pat)):null;return m?parseInt(m[1]):0;};gasto.bid20=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*20L');gasto.bid10=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*10L');}return gasto;});
+      const masRecienteG=gastosSheets.reduce((max,g)=>new Date(g.hora)>max?new Date(g.hora):max,new Date(0));
+      const offlineG=gastos.filter(g=>new Date(g.hora)>masRecienteG);
+      gastos=[...offlineG,...gastosSheets];
+      gastos.sort((a,b)=>new Date(b.hora)-new Date(a.hora));
+    }
     if(d.pedidos&&d.pedidos.length)pedidos=d.pedidos;
-    if(d.gastos&&d.gastos.length)gastos=d.gastos.map(g=>{const gasto={...g,hora:new Date(g.hora)};if(gasto.bid20===undefined||gasto.bid10===undefined){const pN=(nota,pat)=>{const m=nota?nota.match(new RegExp(pat)):null;return m?parseInt(m[1]):0;};gasto.bid20=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*20L');gasto.bid10=pN(gasto.nota,'(\\d+)\\s*bid\\.\\s*10L');}return gasto;});
     if(d.stockInicial){Object.assign(stockInicial,d.stockInicial);guardarCacheStockInicial();}
     if(d.usuarios&&d.usuarios.length){guardarUsuarios(d.usuarios);renderLoginUsuarios();}
     if(d.localidades&&d.localidades.length){const seen=new Set();localidades=d.localidades.filter(l=>{const k=l.toLowerCase().trim();if(seen.has(k))return false;seen.add(k);return true;}).sort((a,b)=>a.localeCompare(b,'es'));poblarSelectLocalidades();}

@@ -147,7 +147,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="app" id="app-body">
   <div class="topbar">
     <div>
-      <div class="topbar-title">Rius <span style="font-size:11px;font-weight:400;color:#aeaeb2;">v1.21.9</span></div>
+      <div class="topbar-title">Rius <span style="font-size:11px;font-weight:400;color:#aeaeb2;">v1.22.0</span></div>
       <div class="topbar-date" id="topbar-fecha"></div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
@@ -365,7 +365,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     <div class="card" id="pedidos-resumen-card" style="display:none;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <div class="card-title" style="margin-bottom:0;">Pendiente de entregar</div>
-        <button onclick="armarRuta()" style="background:#185FA5;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;">🗺️ Ruta</button>
+        <button onclick="abrirRutaConfig()" style="background:#185FA5;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;">🗺️ Ruta</button>
       </div>
       <div id="pedidos-resumen-contenido"></div>
     </div>
@@ -524,6 +524,39 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   </div>
 </div>
 
+<!-- MODAL CONFIG RUTA -->
+<div class="modal-overlay" id="modal-ruta-config" style="align-items:flex-end;">
+  <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:0;overflow:hidden;">
+    <div style="padding:16px 16px 12px;border-bottom:.5px solid #e5e5ea;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:16px;font-weight:600;color:#111;">🗺️ Configurar ruta</div>
+      <button onclick="cerrarRutaConfig()" style="background:none;border:none;font-size:20px;color:#8e8e93;cursor:pointer;">✕</button>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:16px;">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#8e8e93;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Punto de inicio</div>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-inicio-gps" onclick="seleccionarInicio('gps')" style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid #185FA5;background:#185FA5;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">📍 Mi ubicación</button>
+          <button id="btn-inicio-custom" onclick="seleccionarInicio('custom')" style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid #e5e5ea;background:#fff;color:#111;font-size:13px;font-weight:600;cursor:pointer;">📝 Otra dirección</button>
+        </div>
+        <input id="inicio-custom-input" type="text" placeholder="Ej: Rivadavia 1234, Haedo" style="display:none;margin-top:8px;width:100%;border:1px solid #c7c7cc;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#8e8e93;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Punto de llegada</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button id="btn-fin-ninguno" onclick="seleccionarFin('ninguno')" style="padding:10px 6px;border-radius:10px;border:2px solid #185FA5;background:#185FA5;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">— Sin punto fijo</button>
+          <button id="btn-fin-inicio" onclick="seleccionarFin('inicio')" style="padding:10px 6px;border-radius:10px;border:2px solid #e5e5ea;background:#fff;color:#111;font-size:12px;font-weight:600;cursor:pointer;">🔁 Volver al inicio</button>
+          <button id="btn-fin-gps" onclick="seleccionarFin('gps')" style="padding:10px 6px;border-radius:10px;border:2px solid #e5e5ea;background:#fff;color:#111;font-size:12px;font-weight:600;cursor:pointer;">📍 Mi ubicación</button>
+          <button id="btn-fin-custom" onclick="seleccionarFin('custom')" style="padding:10px 6px;border-radius:10px;border:2px solid #e5e5ea;background:#fff;color:#111;font-size:12px;font-weight:600;cursor:pointer;">📝 Otra dirección</button>
+        </div>
+        <input id="fin-custom-input" type="text" placeholder="Ej: Av. Rivadavia 5000, CABA" style="display:none;margin-top:8px;width:100%;border:1px solid #c7c7cc;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;">
+      </div>
+    </div>
+    <div style="padding:0 16px 24px;">
+      <button onclick="armarRuta()" style="width:100%;background:#185FA5;color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;">Calcular ruta →</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL RUTA -->
 <div class="modal-overlay" id="modal-ruta" style="align-items:flex-end;">
   <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:85vh;display:flex;flex-direction:column;padding:0;">
@@ -594,7 +627,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.9</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.22.0</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -606,7 +639,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.9</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.22.0</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -1353,7 +1386,8 @@ function eliminarPedido(id){pedidos=pedidos.filter(p=>p.id!==id);guardarEstado()
 function abrirMaps(dirEncoded){window.open('https://www.google.com/maps/search/?api=1&query='+dirEncoded,'_blank');}
 
 // ---- RUTA ----
-let rutaParadas=[],rutaOrigen=null;
+let rutaParadas=[],rutaOrigen=null,rutaDestino=null;
+let rutaConfigInicio='gps',rutaConfigFin='ninguno';
 
 async function geocodificarDir(dir){
   const q=encodeURIComponent(dir+', Buenos Aires, Argentina');
@@ -1363,7 +1397,29 @@ async function geocodificarDir(dir){
 function distKm(a,b){const R=6371,dL=(b.lat-a.lat)*Math.PI/180,dN=(b.lng-a.lng)*Math.PI/180,h=Math.sin(dL/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dN/2)**2;return R*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));}
 function vecinoMasCercano(origen,paradas){const res=[],pend=[...paradas];let actual=origen;while(pend.length){let mi=Infinity,mx=0;pend.forEach((p,i)=>{const d=distKm(actual,p.coords);if(d<mi){mi=d;mx=i;}});const s=pend.splice(mx,1)[0];s.distancia=mi;res.push(s);actual=s.coords;}return res;}
 
-function renderRutaLista(paradas,origen){
+function recalcDistancias(paradas,ori){let prev=ori;paradas.forEach(p=>{if(prev&&p.coords)p.distancia=distKm(prev,p.coords);else delete p.distancia;if(p.coords)prev=p.coords;});}
+
+function dosOpt(paradas,ori,dst){
+  const n=paradas.length;if(n<=2)return paradas;
+  let mejorado=true;
+  while(mejorado){
+    mejorado=false;
+    for(let i=0;i<n-1;i++){
+      const prevI=i>0?paradas[i-1].coords:ori;
+      if(!prevI)continue;
+      for(let j=i+1;j<n;j++){
+        if(!paradas[i].coords||!paradas[j].coords)continue;
+        const nextJ=j<n-1?paradas[j+1].coords:dst;
+        const dOld=distKm(prevI,paradas[i].coords)+(nextJ?distKm(paradas[j].coords,nextJ):0);
+        const dNew=distKm(prevI,paradas[j].coords)+(nextJ?distKm(paradas[i].coords,nextJ):0);
+        if(dNew<dOld-0.0001){paradas.splice(i,j-i+1,...paradas.slice(i,j+1).reverse());mejorado=true;}
+      }
+    }
+  }
+  return paradas;
+}
+
+function renderRutaLista(paradas,origen,destino){
   const getIcon=n=>n.includes('20L')?'🛢️':n.includes('10L')?'💧':'🧊';
   let html='';
   if(origen)html+=`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:.5px solid #f2f2f7;"><div style="background:#3B6D11;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">⬤</div><div style="font-size:13px;color:#3B6D11;font-weight:600;">Tu ubicación actual</div></div>`;
@@ -1372,33 +1428,65 @@ function renderRutaLista(paradas,origen){
     const sinDirBadge=!p.coords?`<span style="font-size:10px;color:#B42318;background:#FDECEA;border-radius:4px;padding:1px 5px;margin-left:4px;">sin dirección</span><button onclick="abrirMapaPicker(${i})" style="font-size:10px;color:#185FA5;background:none;border:1px solid #185FA5;border-radius:4px;padding:1px 6px;margin-left:4px;cursor:pointer;">📍 Ubicar</button>`:'';
     html+=`<div id="parada-row-${i}" style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:.5px solid #f2f2f7;"><div style="background:${p.coords?'#185FA5':'#aeaeb2'};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;color:#111;">${p.cliente}${sinDirBadge}${distTxt}</div><div style="font-size:12px;color:#8e8e93;">${getIcon(p.prodNombre)} ${p.prodNombre} x${p.cant}${p.nota?' · '+p.nota:''}</div>${p.dir?`<div style="font-size:12px;color:#185FA5;margin-top:2px;">${p.dir}</div>`:''}</div></div>`;
   });
+  if(destino)html+=`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;"><div style="background:#3B6D11;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">🏁</div><div style="font-size:13px;color:#3B6D11;font-weight:600;">Punto de llegada</div></div>`;
   document.getElementById('ruta-lista').innerHTML=html;
 }
 
+function abrirRutaConfig(){document.getElementById('modal-ruta-config').classList.add('visible');}
+function cerrarRutaConfig(){document.getElementById('modal-ruta-config').classList.remove('visible');}
+function seleccionarInicio(tipo){
+  rutaConfigInicio=tipo;
+  ['gps','custom'].forEach(t=>{const b=document.getElementById('btn-inicio-'+t),sel=t===tipo;b.style.background=sel?'#185FA5':'#fff';b.style.color=sel?'#fff':'#111';b.style.borderColor=sel?'#185FA5':'#e5e5ea';});
+  document.getElementById('inicio-custom-input').style.display=tipo==='custom'?'block':'none';
+}
+function seleccionarFin(tipo){
+  rutaConfigFin=tipo;
+  ['ninguno','inicio','gps','custom'].forEach(t=>{const b=document.getElementById('btn-fin-'+t),sel=t===tipo;b.style.background=sel?'#185FA5':'#fff';b.style.color=sel?'#fff':'#111';b.style.borderColor=sel?'#185FA5':'#e5e5ea';});
+  document.getElementById('fin-custom-input').style.display=tipo==='custom'?'block':'none';
+}
+
 async function armarRuta(){
+  cerrarRutaConfig();
   const candidatos=pedidos.map(p=>{const cli=CLIENTES.find(c=>c.nombre===p.cliente);const dir=cli?cli.direccion||'':'';const loc=cli?cli.localidad||'':'';return{...p,dir,loc,dirCompleta:[dir,loc].filter(Boolean).join(', ')};});
   const conDir=candidatos.filter(p=>p.dirCompleta);
   if(!conDir.length){alert('Ningún pedido tiene dirección cargada en el cliente.');return;}
-  document.getElementById('ruta-lista').innerHTML='<div style="text-align:center;padding:32px 16px;color:#8e8e93;"><div style="font-size:28px;margin-bottom:10px;">🗺️</div><div id="ruta-progreso" style="font-size:13px;">Obteniendo ubicación GPS...</div></div>';
+  document.getElementById('ruta-lista').innerHTML='<div style="text-align:center;padding:32px 16px;color:#8e8e93;"><div style="font-size:28px;margin-bottom:10px;">🗺️</div><div id="ruta-progreso" style="font-size:13px;">Iniciando...</div></div>';
   document.getElementById('ruta-subtitulo').textContent='Optimizando...';
   document.getElementById('modal-ruta').classList.add('visible');
   const prog=t=>{const e=document.getElementById('ruta-progreso');if(e)e.textContent=t;};
-  // Geolocation
+  // Punto de inicio
+  prog('Obteniendo punto de inicio...');
   let origen=null;
-  try{origen=await new Promise(res=>navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),()=>res(null),{timeout:5000}));}catch(e){}
-  // Geocodificar con rate limit de Nominatim (1 req/s)
+  if(rutaConfigInicio==='gps'){
+    try{origen=await new Promise(res=>navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),()=>res(null),{timeout:5000}));}catch(e){}
+  }else{
+    const addr=document.getElementById('inicio-custom-input').value.trim();
+    if(addr){prog('Geocodificando inicio...');origen=await geocodificarDir(addr);await new Promise(r=>setTimeout(r,1100));}
+  }
+  // Punto de llegada
+  let destino=null;
+  if(rutaConfigFin==='inicio'){destino=origen;}
+  else if(rutaConfigFin==='gps'){try{destino=await new Promise(res=>navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),()=>res(null),{timeout:5000}));}catch(e){}}
+  else if(rutaConfigFin==='custom'){const addr=document.getElementById('fin-custom-input').value.trim();if(addr){prog('Geocodificando llegada...');destino=await geocodificarDir(addr);await new Promise(r=>setTimeout(r,1100));}}
+  // Geocodificar paradas con rate limit Nominatim
   for(let i=0;i<conDir.length;i++){prog(`Geocodificando dirección ${i+1} de ${conDir.length}...`);conDir[i].coords=await geocodificarDir(conDir[i].dirCompleta);if(i<conDir.length-1)await new Promise(r=>setTimeout(r,1100));}
-  // Optimizar
-  prog('Calculando orden óptimo...');
+  // Optimizar: vecino más cercano → 2-opt
+  prog('Optimizando con 2-opt...');
   const conCoords=conDir.filter(p=>p.coords);
   const sinCoords=conDir.filter(p=>!p.coords);
   let ordenadas=conCoords;
-  if(conCoords.length>1){const puntoInicio=origen||conCoords[0].coords;ordenadas=vecinoMasCercano(puntoInicio,conCoords);}
+  if(conCoords.length>1){
+    const puntoInicio=origen||conCoords[0].coords;
+    ordenadas=vecinoMasCercano(puntoInicio,conCoords);
+    dosOpt(ordenadas,origen,destino);
+    recalcDistancias(ordenadas,origen);
+  }
   rutaParadas=[...ordenadas,...sinCoords];
+  rutaOrigen=origen;rutaDestino=destino;
   const total=rutaParadas.length,sinD=sinCoords.length;
-  document.getElementById('ruta-subtitulo').textContent=`${total} parada${total!==1?'s':''} · optimizada por distancia${sinD>0?' · '+sinD+' sin dirección':''}`;
-  rutaOrigen=origen;
-  renderRutaLista(rutaParadas,origen);
+  const distTotal=ordenadas.reduce((s,p)=>s+(p.distancia||0),0);
+  document.getElementById('ruta-subtitulo').textContent=`${total} parada${total!==1?'s':''} · ${distTotal.toFixed(1)} km${sinD>0?' · '+sinD+' sin dirección':''}`;
+  renderRutaLista(rutaParadas,origen,destino);
 }
 
 function cerrarRuta(){document.getElementById('modal-ruta').classList.remove('visible');}
@@ -1441,26 +1529,36 @@ function confirmarMapaPicker(){
   if(!mapaPickerMarker||mapaPickerIdx===null)return;
   const ll=mapaPickerMarker.getLatLng();
   rutaParadas[mapaPickerIdx].coords={lat:ll.lat,lng:ll.lng};
-  const sinD=rutaParadas.filter(p=>!p.coords).length;
-  document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · optimizada por distancia${sinD>0?' · '+sinD+' sin dirección':''}`;
-  renderRutaLista(rutaParadas,rutaOrigen);
+  // Re-optimizar con la nueva parada ubicada
+  const conCoords=rutaParadas.filter(p=>p.coords);
+  const sinCoords=rutaParadas.filter(p=>!p.coords);
+  let ordenadas=conCoords;
+  if(conCoords.length>1){
+    const puntoInicio=rutaOrigen||conCoords[0].coords;
+    ordenadas=vecinoMasCercano(puntoInicio,conCoords);
+    dosOpt(ordenadas,rutaOrigen,rutaDestino);
+    recalcDistancias(ordenadas,rutaOrigen);
+  }
+  rutaParadas=[...ordenadas,...sinCoords];
+  const sinD=sinCoords.length;
+  const distTotal=ordenadas.reduce((s,p)=>s+(p.distancia||0),0);
+  document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · ${distTotal.toFixed(1)} km${sinD>0?' · '+sinD+' sin dirección':''}`;
+  renderRutaLista(rutaParadas,rutaOrigen,rutaDestino);
   cerrarMapaPicker();
 }
 
 function abrirRutaMaps(){
   const conCoords=rutaParadas.filter(p=>p.coords);
   if(!conCoords.length){alert('No hay direcciones geocodificadas para abrir en Maps.');return;}
-  const dirs=conCoords.map(p=>encodeURIComponent(p.dirCompleta));
-  const base='https://www.google.com/maps/dir/';
-  const origenCoords=conCoords[0]?.coords;
-  // Si tenemos GPS usarlo de origen, sino usar primera dirección como inicio
-  if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(
-      pos=>window.open(base+pos.coords.latitude+','+pos.coords.longitude+'/'+dirs.join('/'),'_blank'),
-      ()=>window.open(base+dirs.join('/'),'_blank'),
-      {timeout:3000}
-    );
-  }else{window.open(base+dirs.join('/'),'_blank');}
+  const waypoints=conCoords.map(p=>p.coords.lat+','+p.coords.lng);
+  const destStr=rutaDestino?'/'+rutaDestino.lat+','+rutaDestino.lng:'';
+  const buildUrl=ori=>ori?`https://www.google.com/maps/dir/${ori}/${waypoints.join('/')}${destStr}`:`https://www.google.com/maps/dir/${waypoints.join('/')}${destStr}`;
+  if(rutaOrigen){window.open(buildUrl(rutaOrigen.lat+','+rutaOrigen.lng),'_blank');return;}
+  navigator.geolocation.getCurrentPosition(
+    pos=>window.open(buildUrl(pos.coords.latitude+','+pos.coords.longitude),'_blank'),
+    ()=>window.open(buildUrl(''),'_blank'),
+    {timeout:3000}
+  );
 }
 function abrirWhatsappPedido(id){const p=pedidos.find(x=>x.id===id);if(!p)return;const num=p.telefono.replace(/[^0-9]/g,'');const d=parseFecha(p.fecha);const fs=d?d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}):p.fecha;const msg=encodeURIComponent('Hola '+p.cliente+'! Tu pedido de '+p.cant+' '+p.prodNombre+' está programado para el '+fs+'. Saludos, Rius');const numF=num.startsWith('54')?num:'54'+(num.startsWith('0')?num.slice(1):num);window.open('https://wa.me/'+numF+'?text='+msg,'_blank');}
 function renderPedidos(){

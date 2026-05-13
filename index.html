@@ -145,7 +145,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="app" id="app-body">
   <div class="topbar">
     <div>
-      <div class="topbar-title">Rius <span style="font-size:11px;font-weight:400;color:#aeaeb2;">v1.21.6</span></div>
+      <div class="topbar-title">Rius <span style="font-size:11px;font-weight:400;color:#aeaeb2;">v1.21.7</span></div>
       <div class="topbar-date" id="topbar-fecha"></div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
@@ -577,7 +577,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.6</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.7</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -589,7 +589,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.6</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.7</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -1337,49 +1337,66 @@ function abrirMaps(dirEncoded){window.open('https://www.google.com/maps/search/?
 
 // ---- RUTA ----
 let rutaParadas=[];
-function armarRuta(){
-  const conDir=pedidos.map(p=>{
-    const cli=CLIENTES.find(c=>c.nombre===p.cliente);
-    const dir=cli?cli.direccion||'':'';
-    const loc=cli?cli.localidad||'':'';
-    return{...p,dir,loc,dirCompleta:[dir,loc].filter(Boolean).join(', ')};
-  }).filter(p=>p.dirCompleta);
-  if(!conDir.length){alert('Ningún pedido tiene dirección cargada en el cliente.');return;}
-  // Agrupar por localidad, orden alfabético dentro de cada grupo
-  const grupos={};
-  conDir.forEach(p=>{const k=p.loc||'Sin localidad';if(!grupos[k])grupos[k]=[];grupos[k].push(p);});
-  Object.values(grupos).forEach(g=>g.sort((a,b)=>a.dir.localeCompare(b.dir,'es')));
-  const locOrdenadas=Object.keys(grupos).sort((a,b)=>a.localeCompare(b,'es'));
-  rutaParadas=locOrdenadas.flatMap(loc=>grupos[loc]);
-  const sinDir=pedidos.length-conDir.length;
-  document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''}${sinDir>0?' · '+sinDir+' sin dirección':''}`;
-  const icons={'Bidón 20L':'🛢️','Bidón 10L':'💧','Dispenser frío/calor + bidones':'🧊'};
-  let html='';let locActual='';
-  rutaParadas.forEach((p,i)=>{
-    if(p.loc!==locActual){locActual=p.loc;html+=`<div style="font-size:11px;font-weight:600;color:#8e8e93;text-transform:uppercase;letter-spacing:.04em;margin:${i>0?'14px':'2px'} 0 6px;">📍 ${locActual||'Sin localidad'}</div>`;}
-    const icon=Object.entries(icons).find(([k])=>p.prodNombre.includes(k.split(' ')[1]))?.[1]||'📦';
-    html+=`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:.5px solid #f2f2f7;">
-      <div style="background:#185FA5;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:14px;font-weight:600;color:#111;">${p.cliente}</div>
-        <div style="font-size:12px;color:#8e8e93;">${icon} ${p.prodNombre} x${p.cant}${p.nota?' · '+p.nota:''}</div>
-        <div style="font-size:12px;color:#185FA5;margin-top:2px;">${p.dir}</div>
-      </div>
-    </div>`;
+
+async function geocodificarDir(dir){
+  const q=encodeURIComponent(dir+', Buenos Aires, Argentina');
+  try{const r=await fetch('https://nominatim.openstreetmap.org/search?q='+q+'&format=json&limit=1&countrycodes=ar');const j=await r.json();if(j.length)return{lat:parseFloat(j[0].lat),lng:parseFloat(j[0].lon)};}catch(e){}
+  return null;
+}
+function distKm(a,b){const R=6371,dL=(b.lat-a.lat)*Math.PI/180,dN=(b.lng-a.lng)*Math.PI/180,h=Math.sin(dL/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dN/2)**2;return R*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));}
+function vecinoMasCercano(origen,paradas){const res=[],pend=[...paradas];let actual=origen;while(pend.length){let mi=Infinity,mx=0;pend.forEach((p,i)=>{const d=distKm(actual,p.coords);if(d<mi){mi=d;mx=i;}});const s=pend.splice(mx,1)[0];s.distancia=mi;res.push(s);actual=s.coords;}return res;}
+
+function renderRutaLista(paradas,origen){
+  const getIcon=n=>n.includes('20L')?'🛢️':n.includes('10L')?'💧':'🧊';
+  let html='';
+  if(origen)html+=`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:.5px solid #f2f2f7;"><div style="background:#3B6D11;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">⬤</div><div style="font-size:13px;color:#3B6D11;font-weight:600;">Tu ubicación actual</div></div>`;
+  paradas.forEach((p,i)=>{
+    const distTxt=p.distancia!==undefined?`<span style="font-size:11px;color:#aeaeb2;"> · ${p.distancia<1?Math.round(p.distancia*1000)+'m':p.distancia.toFixed(1)+'km'}</span>`:'';
+    const sinDirBadge=!p.coords?'<span style="font-size:10px;color:#B42318;background:#FDECEA;border-radius:4px;padding:1px 5px;margin-left:4px;">sin dirección</span>':'';
+    html+=`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:.5px solid #f2f2f7;"><div style="background:${p.coords?'#185FA5':'#aeaeb2'};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;color:#111;">${p.cliente}${sinDirBadge}${distTxt}</div><div style="font-size:12px;color:#8e8e93;">${getIcon(p.prodNombre)} ${p.prodNombre} x${p.cant}${p.nota?' · '+p.nota:''}</div>${p.dir?`<div style="font-size:12px;color:#185FA5;margin-top:2px;">${p.dir}</div>`:''}</div></div>`;
   });
   document.getElementById('ruta-lista').innerHTML=html;
-  document.getElementById('modal-ruta').classList.add('visible');
 }
+
+async function armarRuta(){
+  const candidatos=pedidos.map(p=>{const cli=CLIENTES.find(c=>c.nombre===p.cliente);const dir=cli?cli.direccion||'':'';const loc=cli?cli.localidad||'':'';return{...p,dir,loc,dirCompleta:[dir,loc].filter(Boolean).join(', ')};});
+  const conDir=candidatos.filter(p=>p.dirCompleta);
+  if(!conDir.length){alert('Ningún pedido tiene dirección cargada en el cliente.');return;}
+  document.getElementById('ruta-lista').innerHTML='<div style="text-align:center;padding:32px 16px;color:#8e8e93;"><div style="font-size:28px;margin-bottom:10px;">🗺️</div><div id="ruta-progreso" style="font-size:13px;">Obteniendo ubicación GPS...</div></div>';
+  document.getElementById('ruta-subtitulo').textContent='Optimizando...';
+  document.getElementById('modal-ruta').classList.add('visible');
+  const prog=t=>{const e=document.getElementById('ruta-progreso');if(e)e.textContent=t;};
+  // Geolocation
+  let origen=null;
+  try{origen=await new Promise(res=>navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),()=>res(null),{timeout:5000}));}catch(e){}
+  // Geocodificar con rate limit de Nominatim (1 req/s)
+  for(let i=0;i<conDir.length;i++){prog(`Geocodificando dirección ${i+1} de ${conDir.length}...`);conDir[i].coords=await geocodificarDir(conDir[i].dirCompleta);if(i<conDir.length-1)await new Promise(r=>setTimeout(r,1100));}
+  // Optimizar
+  prog('Calculando orden óptimo...');
+  const conCoords=conDir.filter(p=>p.coords);
+  const sinCoords=conDir.filter(p=>!p.coords);
+  let ordenadas=conCoords;
+  if(conCoords.length>1){const puntoInicio=origen||conCoords[0].coords;ordenadas=vecinoMasCercano(puntoInicio,conCoords);}
+  rutaParadas=[...ordenadas,...sinCoords];
+  const total=rutaParadas.length,sinD=sinCoords.length;
+  document.getElementById('ruta-subtitulo').textContent=`${total} parada${total!==1?'s':''} · optimizada por distancia${sinD>0?' · '+sinD+' sin dirección':''}`;
+  renderRutaLista(rutaParadas,origen);
+}
+
 function cerrarRuta(){document.getElementById('modal-ruta').classList.remove('visible');}
+
 function abrirRutaMaps(){
-  if(!rutaParadas.length)return;
-  const dirs=rutaParadas.map(p=>encodeURIComponent(p.dirCompleta));
+  const conCoords=rutaParadas.filter(p=>p.coords);
+  if(!conCoords.length){alert('No hay direcciones geocodificadas para abrir en Maps.');return;}
+  const dirs=conCoords.map(p=>encodeURIComponent(p.dirCompleta));
   const base='https://www.google.com/maps/dir/';
+  const origenCoords=conCoords[0]?.coords;
+  // Si tenemos GPS usarlo de origen, sino usar primera dirección como inicio
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(
       pos=>window.open(base+pos.coords.latitude+','+pos.coords.longitude+'/'+dirs.join('/'),'_blank'),
       ()=>window.open(base+dirs.join('/'),'_blank'),
-      {timeout:4000}
+      {timeout:3000}
     );
   }else{window.open(base+dirs.join('/'),'_blank');}
 }

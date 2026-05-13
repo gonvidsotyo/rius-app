@@ -554,7 +554,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.3</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.4</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -566,7 +566,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.3</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.4</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -614,7 +614,8 @@ function guardarPrecios(){
 // ---- DATA ----
 const CLIENTES_DISPENSER=new Set();
 const CLIENTES_DISPENSER_RESERVADO=new Set();
-function tieneDispenser(n){return CLIENTES_DISPENSER.has(n);}
+const CLIENTES_DISPENSER_SIN_ABONO=new Set();
+function tieneDispenser(n){return CLIENTES_DISPENSER.has(n)||CLIENTES_DISPENSER_SIN_ABONO.has(n);}
 const CLIENTES=[];
 const CLIENTES_BASE_NOMBRES=new Set();
 const bCasa={};
@@ -643,7 +644,7 @@ let localidades=[];
 
 function getMesActual(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function getBidonesDispenserMes(n){const m=getMesActual();if(!dispenserMes[n]||dispenserMes[n].mes!==m)return 0;return dispenserMes[n].cant;}
-function calcularDispenser(n,cant){const ya=getBidonesDispenserMes(n);const bon=Math.max(0,4-ya);const gratis=Math.min(cant,bon);const cobrados=cant-gratis;return{gratis,cobrados,total:cobrados*precios.p20,ganancia:cobrados*(precios.p20-precios.c20)};}
+function calcularDispenser(n,cant){if(CLIENTES_DISPENSER_SIN_ABONO.has(n))return{gratis:0,cobrados:cant,total:cant*precios.p20,ganancia:cant*(precios.p20-precios.c20)};const ya=getBidonesDispenserMes(n);const bon=Math.max(0,4-ya);const gratis=Math.min(cant,bon);const cobrados=cant-gratis;return{gratis,cobrados,total:cobrados*precios.p20,ganancia:cobrados*(precios.p20-precios.c20)};}
 
 // ---- ABONO DISPENSER ----
 // Rastrea qué clientes pagaron el abono del mes actual
@@ -675,6 +676,7 @@ function recalcularDesdeVentas(lista){
 }
 function tieneAbonoPendiente(nombre){
   if(!tieneDispenser(nombre)) return false;
+  if(CLIENTES_DISPENSER_SIN_ABONO.has(nombre)) return false;
   return abonosPagados[nombre] !== getMesAbono();
 }
 function pagarAbono(nombre){
@@ -828,14 +830,15 @@ function renderClientes(q){
   if(!arr.length){lista.innerHTML='<div style="font-size:13px;color:#aeaeb2;padding:12px 0;">No se encontraron clientes.</div>';return;}
   arr.forEach(c=>{
     const b=bCasa[c.nombre]||{b20:0,b10:0};const deuda=getDeuda(c.nombre);
-    const esDisp=CLIENTES_DISPENSER.has(c.nombre);const esRes=CLIENTES_DISPENSER_RESERVADO.has(c.nombre);
+    const esDisp=CLIENTES_DISPENSER.has(c.nombre)||CLIENTES_DISPENSER_SIN_ABONO.has(c.nombre);const esSinAbono=CLIENTES_DISPENSER_SIN_ABONO.has(c.nombre);const esRes=CLIENTES_DISPENSER_RESERVADO.has(c.nombre);
     const telLimpio=(c.telefono||'').replace(/[^0-9]/g,'');
     const hasTel=telLimpio.length>6;
     const hasDir=!!(c.direccion&&c.direccion.trim().length>2)||!!(c.localidad&&c.localidad.trim().length>2);
     let badgesHtml='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">';
     badgesHtml+=b.b20>0?`<span class="bidge bidge-20">20L: ${b.b20}</span>`:`<span class="bidge bidge-zero">20L: 0</span>`;
     badgesHtml+=b.b10>0?`<span class="bidge bidge-10">10L: ${b.b10}</span>`:`<span class="bidge bidge-zero">10L: 0</span>`;
-    if(esDisp)badgesHtml+=`<span class="bidge" style="background:#E1F5EE;color:#0F6E56;">🧊 Dispenser</span>`;
+    if(esSinAbono)badgesHtml+=`<span class="bidge" style="background:#E1F5EE;color:#0F6E56;">🧊 Dispenser s/abono</span>`;
+    else if(esDisp)badgesHtml+=`<span class="bidge" style="background:#E1F5EE;color:#0F6E56;">🧊 Dispenser</span>`;
     else if(esRes)badgesHtml+=`<span class="bidge" style="background:#FFF3CD;color:#854F0B;">⏳ Reservado</span>`;
     badgesHtml+='</div>';
     const deudaHtml=deuda>0?`<div style="font-size:12px;color:#B42318;margin-top:6px;font-weight:500;">⚠ Deuda: ${fmt(deuda)}</div>`:deuda<0?`<div style="font-size:12px;color:#3B6D11;margin-top:6px;font-weight:500;">✓ A favor: ${fmt(-deuda)}</div>`:'';
@@ -932,6 +935,7 @@ function abrirModalEditarCliente(nombre){
       deudas[nn]=deudas[orig]||0;delete deudas[orig];
       if(CLIENTES_DISPENSER.has(orig)){CLIENTES_DISPENSER.delete(orig);CLIENTES_DISPENSER.add(nn);}
       if(CLIENTES_DISPENSER_RESERVADO.has(orig)){CLIENTES_DISPENSER_RESERVADO.delete(orig);CLIENTES_DISPENSER_RESERVADO.add(nn);}
+      if(CLIENTES_DISPENSER_SIN_ABONO.has(orig)){CLIENTES_DISPENSER_SIN_ABONO.delete(orig);CLIENTES_DISPENSER_SIN_ABONO.add(nn);}
       CLIENTES_BASE_NOMBRES.delete(orig);CLIENTES_BASE_NOMBRES.add(nn);bCasaModificado.add(nn);
     }else{bCasaModificado.add(nn);}
     ov.remove();agregarACola({tipo:'editar-cliente',nombreOriginal:orig,cliente:c});sincronizarEdicionCliente(orig,c);guardarEstado();
@@ -944,7 +948,7 @@ function abrirModalEditarCliente(nombre){
 function eliminarCliente(nombre){
   if(!confirm(`¿Eliminar a "${nombre}" de la lista de clientes?`))return;
   const idx=CLIENTES.findIndex(x=>x.nombre===nombre);if(idx===-1)return;
-  CLIENTES.splice(idx,1);CLIENTES_BASE_NOMBRES.delete(nombre);CLIENTES_DISPENSER.delete(nombre);CLIENTES_DISPENSER_RESERVADO.delete(nombre);
+  CLIENTES.splice(idx,1);CLIENTES_BASE_NOMBRES.delete(nombre);CLIENTES_DISPENSER.delete(nombre);CLIENTES_DISPENSER_RESERVADO.delete(nombre);CLIENTES_DISPENSER_SIN_ABONO.delete(nombre);
   delete bCasa[nombre];delete deudas[nombre];
   agregarACola({tipo:'eliminar-cliente',nombre});
   const url=localStorage.getItem('scriptUrl')||'';
@@ -959,7 +963,8 @@ async function sincronizarDispensersLista(){
   const url=localStorage.getItem('scriptUrl')||'';if(!url||!url.startsWith('https://script.google.com'))return;
   const activos=[...CLIENTES_DISPENSER];
   const reservados=[...CLIENTES_DISPENSER_RESERVADO];
-  try{await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({tipo:'dispensers-lista',activos,reservados})});}catch(e){}
+  const sinAbono=[...CLIENTES_DISPENSER_SIN_ABONO];
+  try{await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({tipo:'dispensers-lista',activos,reservados,sinAbono})});}catch(e){}
 }
 
 // ---- PAGO ----
@@ -1361,7 +1366,7 @@ async function procesarCola(url){
 }
 
 function guardarEstado(){
-  try{localStorage.setItem(STORAGE_KEY,JSON.stringify({ventas:ventas.map(v=>({...v,hora:new Date(v.hora).toISOString()})),gastos:gastos.map(g=>({...g,hora:new Date(g.hora).toISOString()})),pedidos,deudas:Object.fromEntries(Object.entries(deudas)),bCasa:Object.fromEntries(Object.entries(bCasa)),clientes:CLIENTES,dispenserActivos:[...CLIENTES_DISPENSER],dispenserReservados:[...CLIENTES_DISPENSER_RESERVADO]}));}catch(e){}
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify({ventas:ventas.map(v=>({...v,hora:new Date(v.hora).toISOString()})),gastos:gastos.map(g=>({...g,hora:new Date(g.hora).toISOString()})),pedidos,deudas:Object.fromEntries(Object.entries(deudas)),bCasa:Object.fromEntries(Object.entries(bCasa)),clientes:CLIENTES,dispenserActivos:[...CLIENTES_DISPENSER],dispenserReservados:[...CLIENTES_DISPENSER_RESERVADO],dispenserSinAbono:[...CLIENTES_DISPENSER_SIN_ABONO]}));}catch(e){}
 }
 function cargarEstado(){
   try{
@@ -1376,6 +1381,7 @@ function cargarEstado(){
     if(e.clientes&&e.clientes.length){CLIENTES.length=0;CLIENTES_BASE_NOMBRES.clear();e.clientes.forEach(c=>{CLIENTES.push(c);CLIENTES_BASE_NOMBRES.add(c.nombre);if(!bCasa[c.nombre])bCasa[c.nombre]={b20:0,b10:0};if(deudas[c.nombre]===undefined)deudas[c.nombre]=0;});ordenarClientes();}
     if(e.dispenserActivos){CLIENTES_DISPENSER.clear();e.dispenserActivos.forEach(n=>CLIENTES_DISPENSER.add(n));}
     if(e.dispenserReservados){CLIENTES_DISPENSER_RESERVADO.clear();e.dispenserReservados.forEach(n=>CLIENTES_DISPENSER_RESERVADO.add(n));}
+    if(e.dispenserSinAbono){CLIENTES_DISPENSER_SIN_ABONO.clear();e.dispenserSinAbono.forEach(n=>CLIENTES_DISPENSER_SIN_ABONO.add(n));}
     return true;
   }catch(e){return false;}
 }
@@ -1404,6 +1410,7 @@ async function cargarDesdeSheets(url){
     if(d.clientes&&d.clientes.length){CLIENTES.length=0;CLIENTES_BASE_NOMBRES.clear();Object.keys(bCasa).forEach(k=>{delete bCasa[k];});d.clientes.forEach(c=>{if(!c.nombre)return;CLIENTES.push({nombre:c.nombre,localidad:c.localidad||'',direccion:c.direccion||'',telefono:c.telefono||''});CLIENTES_BASE_NOMBRES.add(c.nombre);bCasa[c.nombre]={b20:Number(c.b20)||0,b10:Number(c.b10)||0};if(!deudas[c.nombre])deudas[c.nombre]=0;});ordenarClientes();}
     if(d.dispenserActivos){CLIENTES_DISPENSER.clear();d.dispenserActivos.forEach(n=>CLIENTES_DISPENSER.add(n));}
     if(d.dispenserReservados){CLIENTES_DISPENSER_RESERVADO.clear();d.dispenserReservados.forEach(n=>CLIENTES_DISPENSER_RESERVADO.add(n));}
+    if(d.dispenserSinAbono){CLIENTES_DISPENSER_SIN_ABONO.clear();d.dispenserSinAbono.forEach(n=>CLIENTES_DISPENSER_SIN_ABONO.add(n));}
     if(d.deudas&&Object.keys(d.deudas).length){Object.keys(deudas).forEach(k=>{deudas[k]=0;});Object.assign(deudas,d.deudas);}
     // MERGE ventas: conservar ventas offline más nuevas que la última en Sheets
     if(d.ventas&&d.ventas.length){
@@ -1471,6 +1478,7 @@ window.addEventListener('load',async()=>{
         // Dispensers se cargan siempre, independientemente de si hay sesión activa
         if(d.dispenserActivos){CLIENTES_DISPENSER.clear();d.dispenserActivos.forEach(n=>CLIENTES_DISPENSER.add(n));}
         if(d.dispenserReservados){CLIENTES_DISPENSER_RESERVADO.clear();d.dispenserReservados.forEach(n=>CLIENTES_DISPENSER_RESERVADO.add(n));}
+        if(d.dispenserSinAbono){CLIENTES_DISPENSER_SIN_ABONO.clear();d.dispenserSinAbono.forEach(n=>CLIENTES_DISPENSER_SIN_ABONO.add(n));}
         if(usuarioActual){
           if(d.ventas&&d.ventas.length){
             const ventasSheets=d.ventas.map(v=>({...v,hora:v.hora?new Date(v.hora):new Date(),dev20:v.dev20||0,dev10:v.dev10||0,nuevaDeuda:0,deudaSaldada:0}));
@@ -1499,7 +1507,7 @@ async function resetearTodo(){
   if(!confirm('¿Borrar TODAS las ventas, gastos y pedidos?\n\nEsto no se puede deshacer.'))return;
   const url=localStorage.getItem('scriptUrl')||'';const ind=document.getElementById('sync-indicator');if(ind){ind.style.background='#FFF3CD';ind.style.color='#854F0B';ind.textContent='⏳ Reseteando...';}
   if(url&&url.startsWith('https://script.google.com')){try{const dR={};CLIENTES.forEach(c=>{dR[c.nombre]=0;});CLIENTES_DISPENSER.forEach(n=>{dR[n]=25000;});await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({tipo:'todo',ventas:[],gastos:[],stock,clientes:[],deudas:dR})});}catch(e){}}
-  ventas=[];gastos=[];pedidos=[];bCasaModificado.clear();Object.keys(deudas).forEach(k=>{deudas[k]=0;});CLIENTES_DISPENSER.forEach(n=>{if(deudas[n]!==undefined)deudas[n]=25000;});
+  ventas=[];gastos=[];pedidos=[];bCasaModificado.clear();Object.keys(deudas).forEach(k=>{deudas[k]=0;});CLIENTES_DISPENSER.forEach(n=>{if(deudas[n]!==undefined)deudas[n]=25000;});CLIENTES_DISPENSER_SIN_ABONO.forEach(n=>{if(deudas[n]!==undefined)deudas[n]=0;});
   if(url&&url.startsWith('https://script.google.com')){const ok=await cargarDesdeSheets(url);if(ok){ventas=[];gastos=[];pedidos=[];}}
   guardarEstado();calcularStock();actualizarResumen();if(ind){ind.style.background='#EAF3DE';ind.style.color='#3B6D11';ind.textContent='En línea';}showScreen('inicio');alert('✓ Registros borrados.');
 }

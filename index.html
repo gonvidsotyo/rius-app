@@ -1040,7 +1040,7 @@ function registrarVenta(){
     if(!cliSel){alert('Seleccioná un cliente');return;}
     const monto=parseFloat(document.getElementById('pago-directo-monto')?.value)||0;if(monto<=0){alert('Ingresá un monto');return;}
     const nomCli=cliSel.nombre;const deudaAnt=getDeuda(nomCli);
-    deudas[nomCli]=Math.max(0,deudaAnt-monto);if(monto>deudaAnt)deudas[nomCli]=(deudaAnt-monto);
+    deudas[nomCli]=deudaAnt-monto;
     ventas.unshift({nombre:'Pago',cant:1,total:monto,ganancia:0,hora:new Date(),cliente:nomCli,usuario:usuarioActual||'',dev20:0,dev10:0,pago:'efectivo',deudaSaldada:Math.min(monto,deudaAnt),nuevaDeuda:0});
     document.getElementById('pago-directo-monto').value='';guardarEstado();sincAuto();calcularStock();actualizarResumen();showScreen('inicio');return;
   }
@@ -1079,7 +1079,8 @@ function registrarVenta(){
 function eliminarVenta(idx){
   const v=ventas[idx];if(!v)return;
   if(!confirm(`¿Eliminar la venta "${v.nombre}${v.cliente?' · '+v.cliente:''}" por ${fmt(v.total)}?`))return;
-  if(v.cliente){const nomCli=v.cliente;if(v.nuevaDeuda>0)deudas[nomCli]=Math.max(0,(deudas[nomCli]||0)-v.nuevaDeuda);if(v.deudaSaldada>0)deudas[nomCli]=(deudas[nomCli]||0)+v.deudaSaldada;if(v.nombre==='Pago')deudas[nomCli]=(deudas[nomCli]||0)+v.total;const b=bCasa[nomCli];if(b){if(v.nombre&&(v.nombre.includes('20L')||v.nombre.includes('Bidón 20')))b.b20=Math.max(0,b.b20-v.cant);if(v.nombre&&(v.nombre.includes('10L')||v.nombre.includes('Bidón 10')))b.b10=Math.max(0,b.b10-v.cant);if(v.dev20>0)b.b20=b.b20+v.dev20;if(v.dev10>0)b.b10=b.b10+v.dev10;bCasaModificado.add(nomCli);}}
+  if(v.cliente){const nomCli=v.cliente;if(v.nuevaDeuda>0)deudas[nomCli]=Math.max(0,(deudas[nomCli]||0)-v.nuevaDeuda);if(v.deudaSaldada>0)deudas[nomCli]=(deudas[nomCli]||0)+v.deudaSaldada;if(v.nombre==='Pago')deudas[nomCli]=(deudas[nomCli]||0)+v.total;const b=bCasa[nomCli];if(b){if(v.nombre&&(v.nombre.includes('20L')||v.nombre.includes('Bidón 20')))b.b20=Math.max(0,b.b20-v.cant);if(v.nombre&&(v.nombre.includes('10L')||v.nombre.includes('Bidón 10')))b.b10=Math.max(0,b.b10-v.cant);if(v.dev20>0)b.b20=b.b20+v.dev20;if(v.dev10>0)b.b10=b.b10+v.dev10;bCasaModificado.add(nomCli);}
+    if(v.nombre&&v.nombre.includes('Entrega dispenser')&&!ventas.filter((_,i)=>i!==idx).some(o=>o.cliente===nomCli&&o.nombre&&o.nombre.includes('Entrega dispenser'))){CLIENTES_DISPENSER.delete(nomCli);sincronizarDispensersLista();}}
   ventas.splice(idx,1);
   recalcularDesdeVentas(ventas); // recalcular abonos y dispenserMes antes de sincronizar
   calcularStock();actualizarResumen();guardarEstado();sincAuto();

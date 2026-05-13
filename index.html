@@ -145,7 +145,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="app" id="app-body">
   <div class="topbar">
     <div>
-      <div class="topbar-title">Rius <span style="font-size:11px;font-weight:400;color:#aeaeb2;">v1.21.7</span></div>
+      <div class="topbar-title">Rius <span style="font-size:11px;font-weight:400;color:#aeaeb2;">v1.21.8</span></div>
       <div class="topbar-date" id="topbar-fecha"></div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
@@ -577,7 +577,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.7</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.8</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -589,7 +589,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.7</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.8</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -1336,7 +1336,7 @@ function eliminarPedido(id){pedidos=pedidos.filter(p=>p.id!==id);guardarEstado()
 function abrirMaps(dirEncoded){window.open('https://www.google.com/maps/search/?api=1&query='+dirEncoded,'_blank');}
 
 // ---- RUTA ----
-let rutaParadas=[];
+let rutaParadas=[],rutaOrigen=null;
 
 async function geocodificarDir(dir){
   const q=encodeURIComponent(dir+', Buenos Aires, Argentina');
@@ -1352,8 +1352,8 @@ function renderRutaLista(paradas,origen){
   if(origen)html+=`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:.5px solid #f2f2f7;"><div style="background:#3B6D11;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">⬤</div><div style="font-size:13px;color:#3B6D11;font-weight:600;">Tu ubicación actual</div></div>`;
   paradas.forEach((p,i)=>{
     const distTxt=p.distancia!==undefined?`<span style="font-size:11px;color:#aeaeb2;"> · ${p.distancia<1?Math.round(p.distancia*1000)+'m':p.distancia.toFixed(1)+'km'}</span>`:'';
-    const sinDirBadge=!p.coords?'<span style="font-size:10px;color:#B42318;background:#FDECEA;border-radius:4px;padding:1px 5px;margin-left:4px;">sin dirección</span>':'';
-    html+=`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:.5px solid #f2f2f7;"><div style="background:${p.coords?'#185FA5':'#aeaeb2'};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;color:#111;">${p.cliente}${sinDirBadge}${distTxt}</div><div style="font-size:12px;color:#8e8e93;">${getIcon(p.prodNombre)} ${p.prodNombre} x${p.cant}${p.nota?' · '+p.nota:''}</div>${p.dir?`<div style="font-size:12px;color:#185FA5;margin-top:2px;">${p.dir}</div>`:''}</div></div>`;
+    const sinDirBadge=!p.coords?`<span style="font-size:10px;color:#B42318;background:#FDECEA;border-radius:4px;padding:1px 5px;margin-left:4px;">sin dirección</span><button onclick="ubicarManualmente(${i})" style="font-size:10px;color:#185FA5;background:none;border:1px solid #185FA5;border-radius:4px;padding:1px 6px;margin-left:4px;cursor:pointer;">📍 Ubicar</button>`:'';
+    html+=`<div id="parada-row-${i}" style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:.5px solid #f2f2f7;"><div style="background:${p.coords?'#185FA5':'#aeaeb2'};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;color:#111;">${p.cliente}${sinDirBadge}${distTxt}</div><div style="font-size:12px;color:#8e8e93;">${getIcon(p.prodNombre)} ${p.prodNombre} x${p.cant}${p.nota?' · '+p.nota:''}</div>${p.dir?`<div style="font-size:12px;color:#185FA5;margin-top:2px;">${p.dir}</div>`:''}</div></div>`;
   });
   document.getElementById('ruta-lista').innerHTML=html;
 }
@@ -1380,10 +1380,41 @@ async function armarRuta(){
   rutaParadas=[...ordenadas,...sinCoords];
   const total=rutaParadas.length,sinD=sinCoords.length;
   document.getElementById('ruta-subtitulo').textContent=`${total} parada${total!==1?'s':''} · optimizada por distancia${sinD>0?' · '+sinD+' sin dirección':''}`;
+  rutaOrigen=origen;
   renderRutaLista(rutaParadas,origen);
 }
 
 function cerrarRuta(){document.getElementById('modal-ruta').classList.remove('visible');}
+
+async function ubicarManualmente(idx){
+  const existing=document.getElementById('ubicar-form-'+idx);
+  if(existing){existing.remove();return;}
+  const row=document.getElementById('parada-row-'+idx);
+  if(!row)return;
+  const p=rutaParadas[idx];
+  const form=document.createElement('div');
+  form.id='ubicar-form-'+idx;
+  form.style.cssText='margin-top:4px;margin-bottom:4px;display:flex;gap:6px;align-items:center;padding-left:34px;';
+  form.innerHTML=`<input id="ubicar-input-${idx}" type="text" value="${p.dirCompleta||p.dir||''}" placeholder="Ingresá la dirección..." style="flex:1;border:1px solid #c7c7cc;border-radius:8px;padding:7px 10px;font-size:13px;outline:none;"><button onclick="confirmarUbicacion(${idx})" style="background:#185FA5;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;font-weight:600;">✓</button>`;
+  row.insertAdjacentElement('afterend',form);
+  document.getElementById('ubicar-input-'+idx).focus();
+}
+
+async function confirmarUbicacion(idx){
+  const input=document.getElementById('ubicar-input-'+idx);
+  if(!input)return;
+  const addr=input.value.trim();
+  if(!addr)return;
+  const btn=input.nextElementSibling;
+  input.disabled=true;btn.textContent='…';
+  const coords=await geocodificarDir(addr);
+  if(!coords){alert('No se pudo encontrar esa dirección. Probá con otra descripción.');input.disabled=false;btn.textContent='✓';return;}
+  rutaParadas[idx].coords=coords;
+  rutaParadas[idx].dirCompleta=addr;
+  const sinD=rutaParadas.filter(p=>!p.coords).length;
+  document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · optimizada por distancia${sinD>0?' · '+sinD+' sin dirección':''}`;
+  renderRutaLista(rutaParadas,rutaOrigen);
+}
 
 function abrirRutaMaps(){
   const conCoords=rutaParadas.filter(p=>p.coords);

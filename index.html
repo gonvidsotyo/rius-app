@@ -145,7 +145,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="app" id="app-body">
   <div class="topbar">
     <div>
-      <div class="topbar-title">Rius <span style="font-size:11px;font-weight:400;color:#aeaeb2;">v1.21.5</span></div>
+      <div class="topbar-title">Rius <span style="font-size:11px;font-weight:400;color:#aeaeb2;">v1.21.6</span></div>
       <div class="topbar-date" id="topbar-fecha"></div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
@@ -361,7 +361,10 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   <!-- PEDIDOS -->
   <div id="pedidos" class="screen">
     <div class="card" id="pedidos-resumen-card" style="display:none;">
-      <div class="card-title">Pendiente de entregar</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="card-title" style="margin-bottom:0;">Pendiente de entregar</div>
+        <button onclick="armarRuta()" style="background:#185FA5;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;">🗺️ Ruta</button>
+      </div>
       <div id="pedidos-resumen-contenido"></div>
     </div>
     <div class="card">
@@ -519,6 +522,23 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   </div>
 </div>
 
+<!-- MODAL RUTA -->
+<div class="modal-overlay" id="modal-ruta" style="align-items:flex-end;">
+  <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:85vh;display:flex;flex-direction:column;padding:0;">
+    <div style="padding:16px 16px 10px;border-bottom:.5px solid #e5e5ea;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div>
+        <div style="font-size:16px;font-weight:600;color:#111;">🗺️ Ruta del día</div>
+        <div id="ruta-subtitulo" style="font-size:12px;color:#8e8e93;margin-top:2px;"></div>
+      </div>
+      <button onclick="cerrarRuta()" style="background:none;border:none;font-size:20px;color:#8e8e93;cursor:pointer;padding:0;">✕</button>
+    </div>
+    <div id="ruta-lista" style="overflow-y:auto;padding:12px 16px;flex:1;"></div>
+    <div style="padding:12px 16px;border-top:.5px solid #e5e5ea;display:flex;gap:8px;flex-shrink:0;">
+      <button onclick="abrirRutaMaps()" style="flex:1;background:#185FA5;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;">📍 Abrir en Google Maps</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL EDITAR PEDIDO -->
 <div class="modal-ped" id="modal-editar-pedido">
   <div class="modal-ped-box">
@@ -557,7 +577,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.5</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.6</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -569,7 +589,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.5</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.6</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -1314,6 +1334,55 @@ function entregarPedido(id){const p=pedidos.find(x=>x.id===id);if(!p)return;pedi
 function finalizarEntregaPedido(){if(pedidoEnEntrega===null)return;pedidos=pedidos.filter(p=>p.id!==pedidoEnEntrega);pedidoEnEntrega=null;guardarEstado();renderPedidos();}
 function eliminarPedido(id){pedidos=pedidos.filter(p=>p.id!==id);guardarEstado();sincAuto();renderPedidos();}
 function abrirMaps(dirEncoded){window.open('https://www.google.com/maps/search/?api=1&query='+dirEncoded,'_blank');}
+
+// ---- RUTA ----
+let rutaParadas=[];
+function armarRuta(){
+  const conDir=pedidos.map(p=>{
+    const cli=CLIENTES.find(c=>c.nombre===p.cliente);
+    const dir=cli?cli.direccion||'':'';
+    const loc=cli?cli.localidad||'':'';
+    return{...p,dir,loc,dirCompleta:[dir,loc].filter(Boolean).join(', ')};
+  }).filter(p=>p.dirCompleta);
+  if(!conDir.length){alert('Ningún pedido tiene dirección cargada en el cliente.');return;}
+  // Agrupar por localidad, orden alfabético dentro de cada grupo
+  const grupos={};
+  conDir.forEach(p=>{const k=p.loc||'Sin localidad';if(!grupos[k])grupos[k]=[];grupos[k].push(p);});
+  Object.values(grupos).forEach(g=>g.sort((a,b)=>a.dir.localeCompare(b.dir,'es')));
+  const locOrdenadas=Object.keys(grupos).sort((a,b)=>a.localeCompare(b,'es'));
+  rutaParadas=locOrdenadas.flatMap(loc=>grupos[loc]);
+  const sinDir=pedidos.length-conDir.length;
+  document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''}${sinDir>0?' · '+sinDir+' sin dirección':''}`;
+  const icons={'Bidón 20L':'🛢️','Bidón 10L':'💧','Dispenser frío/calor + bidones':'🧊'};
+  let html='';let locActual='';
+  rutaParadas.forEach((p,i)=>{
+    if(p.loc!==locActual){locActual=p.loc;html+=`<div style="font-size:11px;font-weight:600;color:#8e8e93;text-transform:uppercase;letter-spacing:.04em;margin:${i>0?'14px':'2px'} 0 6px;">📍 ${locActual||'Sin localidad'}</div>`;}
+    const icon=Object.entries(icons).find(([k])=>p.prodNombre.includes(k.split(' ')[1]))?.[1]||'📦';
+    html+=`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:.5px solid #f2f2f7;">
+      <div style="background:#185FA5;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:600;color:#111;">${p.cliente}</div>
+        <div style="font-size:12px;color:#8e8e93;">${icon} ${p.prodNombre} x${p.cant}${p.nota?' · '+p.nota:''}</div>
+        <div style="font-size:12px;color:#185FA5;margin-top:2px;">${p.dir}</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('ruta-lista').innerHTML=html;
+  document.getElementById('modal-ruta').classList.add('visible');
+}
+function cerrarRuta(){document.getElementById('modal-ruta').classList.remove('visible');}
+function abrirRutaMaps(){
+  if(!rutaParadas.length)return;
+  const dirs=rutaParadas.map(p=>encodeURIComponent(p.dirCompleta));
+  const base='https://www.google.com/maps/dir/';
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(
+      pos=>window.open(base+pos.coords.latitude+','+pos.coords.longitude+'/'+dirs.join('/'),'_blank'),
+      ()=>window.open(base+dirs.join('/'),'_blank'),
+      {timeout:4000}
+    );
+  }else{window.open(base+dirs.join('/'),'_blank');}
+}
 function abrirWhatsappPedido(id){const p=pedidos.find(x=>x.id===id);if(!p)return;const num=p.telefono.replace(/[^0-9]/g,'');const d=parseFecha(p.fecha);const fs=d?d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}):p.fecha;const msg=encodeURIComponent('Hola '+p.cliente+'! Tu pedido de '+p.cant+' '+p.prodNombre+' está programado para el '+fs+'. Saludos, Rius');const numF=num.startsWith('54')?num:'54'+(num.startsWith('0')?num.slice(1):num);window.open('https://wa.me/'+numF+'?text='+msg,'_blank');}
 function renderPedidos(){
   const lista=document.getElementById('pedidos-lista');if(!lista)return;

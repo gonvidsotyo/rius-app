@@ -554,7 +554,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.2</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -566,7 +566,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.0</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.2</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -708,7 +708,7 @@ function showScreen(id){
   ['inicio','pedidos','venta','clientes','stock','gastos'].forEach((s,i)=>{if(s===id)document.querySelectorAll('.nav-btn')[i]?.classList.add('active');});
   if(id==='inicio')actualizarResumen();
   if(id==='clientes')renderClientes('');
-  if(id==='venta'){limpiarCliente();resetDev();resetEditMonto();pagoActual='efectivo';selPago('efectivo');document.getElementById('cant').value=1;document.getElementById('cant-display').textContent='1';toggleBidDisp();togglePagoDirecto();calcTotal();}
+  if(id==='venta'){limpiarCliente();resetDev();resetEditMonto();pagoActual='efectivo';selPago('efectivo');document.getElementById('cant').value=1;document.getElementById('cant-display').textContent='1';toggleBidDisp();togglePagoDirecto();calcTotal();resetFechaManual();}
   if(id==='stock')calcularStock();
   if(id==='gastos')filtrarGastos(gastosFiltroActual||'hoy');
   if(id==='pedidos'){renderPedidos();document.getElementById('ped-fecha').value=new Date().toISOString().split('T')[0];limpiarClientePedido();document.getElementById('ped-cant').value=1;document.getElementById('ped-cant-display').textContent='1';pedPagoActual='pendiente';selPedPago('pendiente');}
@@ -1000,7 +1000,7 @@ function actualizarDev(){
 // ---- DISPENSER ----
 const bidDisp={bd20:0,bd10:0};
 function chgBidDisp(id,delta){bidDisp[id]=Math.max(0,bidDisp[id]+delta);document.getElementById(id).textContent=bidDisp[id];calcTotal();}
-function toggleBidDisp(){const key=document.getElementById('prod-sel').value;const row=document.getElementById('bid-disp-row');if(row)row.style.display=key==='disp-fc|0|0'?'block':'none';if(key!=='disp-fc|0|0'){bidDisp.bd20=0;bidDisp.bd10=0;}}
+function toggleBidDisp(){const key=document.getElementById('prod-sel').value;const row=document.getElementById('bid-disp-row');if(row)row.style.display=key==='disp-fc|0|0'?'block':'none';if(key!=='disp-fc|0|0'){bidDisp.bd20=0;bidDisp.bd10=0;}const cantRow=document.getElementById('cant-row');if(cantRow)cantRow.style.display=(key==='disp-fc|0|0'||key==='devdisp|0|0')?'none':'block';}
 
 // ---- EDITAR MONTO ----
 let montoManualActivo=false;

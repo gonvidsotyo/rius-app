@@ -554,7 +554,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.2</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.3</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -566,7 +566,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.2</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.3</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -583,7 +583,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 // ---- HELPERS ----
 function fmt(n){return '$'+Math.round(n).toLocaleString('es-AR');}
 function parseFecha(str){if(!str)return null;const p=str.split('-');if(p.length!==3)return null;return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));}
-function formatFechaCorta(str){const d=parseFecha(str);if(!d)return str||'';const ds=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];return ds[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1);}
+function formatFechaCorta(str){if(!str)return '';const d=parseFecha(str)||new Date(str);if(!d||isNaN(d.getTime()))return str;const ds=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];return ds[d.getDay()]+' '+d.getDate()+'/'+String(d.getMonth()+1).padStart(2,'0');}
 
 // ---- STOCK INICIAL ----
 let stockInicial={llenos20:0,llenos10:0,vacios20:0,vacios10:0,comp20:0,comp10:0};

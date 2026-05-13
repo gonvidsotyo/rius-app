@@ -11,6 +11,8 @@
   <meta name="theme-color" content="#185FA5" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon.png" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body style="background:#f2f2f7;margin:0;padding:0;-webkit-text-size-adjust:100%;">
 <style>
@@ -145,7 +147,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="app" id="app-body">
   <div class="topbar">
     <div>
-      <div class="topbar-title">Rius <span style="font-size:11px;font-weight:400;color:#aeaeb2;">v1.21.8</span></div>
+      <div class="topbar-title">Rius <span style="font-size:11px;font-weight:400;color:#aeaeb2;">v1.21.9</span></div>
       <div class="topbar-date" id="topbar-fecha"></div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
@@ -539,6 +541,21 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   </div>
 </div>
 
+<!-- MODAL MAPA PICKER -->
+<div id="modal-mapa-picker" style="display:none;position:fixed;inset:0;z-index:3000;background:#fff;flex-direction:column;">
+  <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:.5px solid #e5e5ea;flex-shrink:0;">
+    <button onclick="cerrarMapaPicker()" style="background:none;border:none;font-size:22px;color:#8e8e93;cursor:pointer;line-height:1;">✕</button>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:15px;font-weight:600;color:#111;" id="mapa-picker-titulo">Ubicar en el mapa</div>
+      <div id="mapa-picker-hint" style="font-size:12px;color:#8e8e93;margin-top:1px;">Tocá el punto exacto de la dirección</div>
+    </div>
+  </div>
+  <div id="mapa-picker-map" style="flex:1;width:100%;"></div>
+  <div style="padding:12px 16px;border-top:.5px solid #e5e5ea;flex-shrink:0;">
+    <button id="mapa-picker-confirm" onclick="confirmarMapaPicker()" style="width:100%;background:#185FA5;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;opacity:.4;" disabled>Tocá el mapa para ubicar</button>
+  </div>
+</div>
+
 <!-- MODAL EDITAR PEDIDO -->
 <div class="modal-ped" id="modal-editar-pedido">
   <div class="modal-ped-box">
@@ -577,7 +594,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.8</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.9</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -589,7 +606,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.8</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.9</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -1352,7 +1369,7 @@ function renderRutaLista(paradas,origen){
   if(origen)html+=`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:.5px solid #f2f2f7;"><div style="background:#3B6D11;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">⬤</div><div style="font-size:13px;color:#3B6D11;font-weight:600;">Tu ubicación actual</div></div>`;
   paradas.forEach((p,i)=>{
     const distTxt=p.distancia!==undefined?`<span style="font-size:11px;color:#aeaeb2;"> · ${p.distancia<1?Math.round(p.distancia*1000)+'m':p.distancia.toFixed(1)+'km'}</span>`:'';
-    const sinDirBadge=!p.coords?`<span style="font-size:10px;color:#B42318;background:#FDECEA;border-radius:4px;padding:1px 5px;margin-left:4px;">sin dirección</span><button onclick="ubicarManualmente(${i})" style="font-size:10px;color:#185FA5;background:none;border:1px solid #185FA5;border-radius:4px;padding:1px 6px;margin-left:4px;cursor:pointer;">📍 Ubicar</button>`:'';
+    const sinDirBadge=!p.coords?`<span style="font-size:10px;color:#B42318;background:#FDECEA;border-radius:4px;padding:1px 5px;margin-left:4px;">sin dirección</span><button onclick="abrirMapaPicker(${i})" style="font-size:10px;color:#185FA5;background:none;border:1px solid #185FA5;border-radius:4px;padding:1px 6px;margin-left:4px;cursor:pointer;">📍 Ubicar</button>`:'';
     html+=`<div id="parada-row-${i}" style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:.5px solid #f2f2f7;"><div style="background:${p.coords?'#185FA5':'#aeaeb2'};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;color:#111;">${p.cliente}${sinDirBadge}${distTxt}</div><div style="font-size:12px;color:#8e8e93;">${getIcon(p.prodNombre)} ${p.prodNombre} x${p.cant}${p.nota?' · '+p.nota:''}</div>${p.dir?`<div style="font-size:12px;color:#185FA5;margin-top:2px;">${p.dir}</div>`:''}</div></div>`;
   });
   document.getElementById('ruta-lista').innerHTML=html;
@@ -1386,34 +1403,48 @@ async function armarRuta(){
 
 function cerrarRuta(){document.getElementById('modal-ruta').classList.remove('visible');}
 
-async function ubicarManualmente(idx){
-  const existing=document.getElementById('ubicar-form-'+idx);
-  if(existing){existing.remove();return;}
-  const row=document.getElementById('parada-row-'+idx);
-  if(!row)return;
+let mapaPicker=null,mapaPickerMarker=null,mapaPickerIdx=null;
+
+function abrirMapaPicker(idx){
+  mapaPickerIdx=idx;
   const p=rutaParadas[idx];
-  const form=document.createElement('div');
-  form.id='ubicar-form-'+idx;
-  form.style.cssText='margin-top:4px;margin-bottom:4px;display:flex;gap:6px;align-items:center;padding-left:34px;';
-  form.innerHTML=`<input id="ubicar-input-${idx}" type="text" value="${p.dirCompleta||p.dir||''}" placeholder="Ingresá la dirección..." style="flex:1;border:1px solid #c7c7cc;border-radius:8px;padding:7px 10px;font-size:13px;outline:none;"><button onclick="confirmarUbicacion(${idx})" style="background:#185FA5;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;font-weight:600;">✓</button>`;
-  row.insertAdjacentElement('afterend',form);
-  document.getElementById('ubicar-input-'+idx).focus();
+  document.getElementById('mapa-picker-titulo').textContent=p.cliente;
+  document.getElementById('mapa-picker-hint').textContent='Tocá el punto exacto de la dirección';
+  const btn=document.getElementById('mapa-picker-confirm');
+  btn.disabled=true;btn.style.opacity='.4';btn.textContent='Tocá el mapa para ubicar';
+  const modal=document.getElementById('modal-mapa-picker');
+  modal.style.display='flex';
+  if(!mapaPicker){
+    const centro=rutaOrigen||{lat:-34.6037,lng:-58.3816};
+    mapaPicker=L.map('mapa-picker-map').setView([centro.lat,centro.lng],14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapaPicker);
+    mapaPicker.on('click',function(e){
+      if(mapaPickerMarker)mapaPickerMarker.setLatLng(e.latlng);
+      else mapaPickerMarker=L.marker(e.latlng,{draggable:true}).addTo(mapaPicker);
+      const btn=document.getElementById('mapa-picker-confirm');
+      btn.disabled=false;btn.style.opacity='1';btn.textContent='Confirmar ubicación';
+      document.getElementById('mapa-picker-hint').textContent=`${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+    });
+  } else {
+    if(mapaPickerMarker){mapaPicker.removeLayer(mapaPickerMarker);mapaPickerMarker=null;}
+    const centro=rutaOrigen||{lat:-34.6037,lng:-58.3816};
+    mapaPicker.setView([centro.lat,centro.lng],14);
+  }
+  setTimeout(()=>mapaPicker.invalidateSize(),150);
 }
 
-async function confirmarUbicacion(idx){
-  const input=document.getElementById('ubicar-input-'+idx);
-  if(!input)return;
-  const addr=input.value.trim();
-  if(!addr)return;
-  const btn=input.nextElementSibling;
-  input.disabled=true;btn.textContent='…';
-  const coords=await geocodificarDir(addr);
-  if(!coords){alert('No se pudo encontrar esa dirección. Probá con otra descripción.');input.disabled=false;btn.textContent='✓';return;}
-  rutaParadas[idx].coords=coords;
-  rutaParadas[idx].dirCompleta=addr;
+function cerrarMapaPicker(){
+  document.getElementById('modal-mapa-picker').style.display='none';
+}
+
+function confirmarMapaPicker(){
+  if(!mapaPickerMarker||mapaPickerIdx===null)return;
+  const ll=mapaPickerMarker.getLatLng();
+  rutaParadas[mapaPickerIdx].coords={lat:ll.lat,lng:ll.lng};
   const sinD=rutaParadas.filter(p=>!p.coords).length;
   document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · optimizada por distancia${sinD>0?' · '+sinD+' sin dirección':''}`;
   renderRutaLista(rutaParadas,rutaOrigen);
+  cerrarMapaPicker();
 }
 
 function abrirRutaMaps(){

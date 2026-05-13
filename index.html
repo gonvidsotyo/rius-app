@@ -145,7 +145,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="app" id="app-body">
   <div class="topbar">
     <div>
-      <div class="topbar-title">Rius <span style="font-size:11px;font-weight:400;color:#aeaeb2;">v1.21.4</span></div>
+      <div class="topbar-title">Rius <span style="font-size:11px;font-weight:400;color:#aeaeb2;">v1.21.5</span></div>
       <div class="topbar-date" id="topbar-fecha"></div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
@@ -253,6 +253,9 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         </div>
         <div class="deuda-badge" id="deuda-badge">
           <div><div style="font-weight:600;">⚠ Cliente con deuda</div><div id="deuda-monto" style="font-size:12px;margin-top:2px;"></div></div>
+        </div>
+        <div id="saldo-favor-badge" style="display:none;background:#E1F5EE;border-radius:10px;padding:9px 12px;font-size:13px;color:#0F6E56;margin-top:6px;">
+          <div style="font-weight:600;">✓ Saldo a favor</div><div id="saldo-favor-monto" style="font-size:12px;margin-top:2px;"></div>
         </div>
         <div class="pagar-deuda-row" id="pagar-deuda-row" style="display:none;">
           <input type="checkbox" class="pagar-deuda-check" id="pagar-deuda-check" onchange="calcTotal()" />
@@ -554,7 +557,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="setup-overlay" style="display:flex;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.4</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.5</div>
     <div class="login-sub" style="margin-bottom:20px;">Bienvenido a Rius 💧<br>Pegá la URL del script de Google para sincronizar los datos.</div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;" /></div>
     <div id="setup-msg" style="font-size:12px;color:#8e8e93;margin:8px 0;display:none;"></div>
@@ -566,7 +569,7 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 <div class="login-overlay" id="login-overlay" style="display:none;">
   <div class="login-box">
     <div class="login-logo">💧 Rius</div>
-    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.4</div>
+    <div style="font-size:11px;color:#aeaeb2;margin-bottom:6px;">v1.21.5</div>
     <div class="login-sub">Iniciá sesión para continuar</div>
     <div class="login-user-sel" id="login-user-sel"></div>
     <div id="login-pass-section" style="display:none;">
@@ -766,8 +769,10 @@ function selCli(nombre){
   console.log('Cliente:', nombre, '| tieneDispenser:', esDisp, '| CLIENTES_DISPENSER size:', CLIENTES_DISPENSER.size, '| en set:', CLIENTES_DISPENSER.has(nombre));
   const deuda=getDeuda(nombre);
   const db=document.getElementById('deuda-badge'),dm=document.getElementById('deuda-monto'),pr=document.getElementById('pagar-deuda-row'),ch=document.getElementById('pagar-deuda-check');
-  if(deuda>0){db.classList.add('visible');dm.textContent=`Debe ${fmt(deuda)}`;pr.style.display='flex';if(ch)ch.checked=false;}
-  else{db.classList.remove('visible');pr.style.display='none';if(ch)ch.checked=false;}
+  const sfb=document.getElementById('saldo-favor-badge'),sfm=document.getElementById('saldo-favor-monto');
+  if(deuda>0){db.classList.add('visible');dm.textContent=`Debe ${fmt(deuda)}`;pr.style.display='flex';if(ch)ch.checked=false;if(sfb)sfb.style.display='none';}
+  else if(deuda<0){db.classList.remove('visible');pr.style.display='none';if(ch)ch.checked=false;if(sfb){sfb.style.display='block';sfm.textContent=`${fmt(-deuda)} — se descontará automáticamente`;}}
+  else{db.classList.remove('visible');pr.style.display='none';if(ch)ch.checked=false;if(sfb)sfb.style.display='none';}
   if(document.getElementById('prod-sel').value==='pago|0|0')actualizarInfoPagoDirecto();
   actualizarBannerAbono();
   resetDev();calcTotal();
@@ -775,7 +780,7 @@ function selCli(nombre){
 function limpiarCliente(){
   cliSel=null;document.getElementById('cli-inp').value='';document.getElementById('ac-list').style.display='none';
   document.getElementById('cli-badge').classList.remove('on');document.getElementById('deuda-badge').classList.remove('visible');
-  document.getElementById('pagar-deuda-row').style.display='none';document.getElementById('total-con-deuda-row').style.display='none';
+  document.getElementById('pagar-deuda-row').style.display='none';document.getElementById('total-con-deuda-row').style.display='none';const sfbL=document.getElementById('saldo-favor-badge');if(sfbL)sfbL.style.display='none';
   document.getElementById('abono-badge').style.display='none';
   const ch=document.getElementById('cobrar-abono-check');if(ch)ch.checked=false;
   resetDev();
@@ -1067,9 +1072,11 @@ function registrarVenta(){
   const pagarDeuda=document.getElementById('pagar-deuda-check')?.checked&&pagoActual!=='nopago';
   const cobrarAbono=document.getElementById('cobrar-abono-check')?.checked&&pagoActual!=='nopago';
   const nomCli=cliSel?cliSel.nombre:'';const deudaAnt=pagarDeuda?getDeuda(nomCli):0;const totalFinal=total+deudaAnt;
-  if(pagoActual==='nopago'){if(nomCli)deudas[nomCli]=(deudas[nomCli]||0)+total;}else if(pagarDeuda&&deudaAnt>0){deudas[nomCli]=0;}
+  const saldoActual=nomCli&&pagoActual!=='nopago'?Math.max(0,-(deudas[nomCli]||0)):0;
+  const saldoUsado=Math.min(saldoActual,totalFinal);
+  if(pagoActual==='nopago'){if(nomCli)deudas[nomCli]=(deudas[nomCli]||0)+total;}else if(pagarDeuda&&deudaAnt>0){deudas[nomCli]=0;}else if(saldoUsado>0){deudas[nomCli]=(deudas[nomCli]||0)+saldoUsado;}
   if(cliSel){const b=bCasa[cliSel.nombre];if(key==='5000|1000|20')b.b20=Math.max(0,b.b20+cant-dev.dev20);if(key==='4000|800|10')b.b10=Math.max(0,b.b10+cant-dev.dev10);if(key!=='5000|1000|20'&&dev.dev20>0)b.b20=Math.max(0,b.b20-dev.dev20);if(key!=='4000|800|10'&&dev.dev10>0)b.b10=Math.max(0,b.b10-dev.dev10);bCasaModificado.add(cliSel.nombre);}
-  ventas.unshift({nombre:nombreVenta,cant,total:totalFinal,ganancia,hora:getFechaVenta(),cliente:nomCli,usuario:usuarioActual||'',dev20:dev.dev20,dev10:dev.dev10,pago:pagoActual,deudaSaldada:pagarDeuda?deudaAnt:0,nuevaDeuda:pagoActual==='nopago'?total:0});
+  ventas.unshift({nombre:nombreVenta,cant,total:totalFinal,ganancia,hora:getFechaVenta(),cliente:nomCli,usuario:usuarioActual||'',dev20:dev.dev20,dev10:dev.dev10,pago:pagoActual,deudaSaldada:pagarDeuda?deudaAnt:0,nuevaDeuda:pagoActual==='nopago'?total:0,saldoUsado});
   // Registrar abono dispenser como venta separada
   if(cobrarAbono&&nomCli){
     abonosPagados[nomCli]=getMesAbono();
@@ -1084,7 +1091,7 @@ function registrarVenta(){
 function eliminarVenta(idx){
   const v=ventas[idx];if(!v)return;
   if(!confirm(`¿Eliminar la venta "${v.nombre}${v.cliente?' · '+v.cliente:''}" por ${fmt(v.total)}?`))return;
-  if(v.cliente){const nomCli=v.cliente;if(v.nuevaDeuda>0)deudas[nomCli]=Math.max(0,(deudas[nomCli]||0)-v.nuevaDeuda);if(v.deudaSaldada>0)deudas[nomCli]=(deudas[nomCli]||0)+v.deudaSaldada;if(v.nombre==='Pago')deudas[nomCli]=(deudas[nomCli]||0)+v.total;const b=bCasa[nomCli];if(b){if(v.nombre&&(v.nombre.includes('20L')||v.nombre.includes('Bidón 20')))b.b20=Math.max(0,b.b20-v.cant);if(v.nombre&&(v.nombre.includes('10L')||v.nombre.includes('Bidón 10')))b.b10=Math.max(0,b.b10-v.cant);if(v.dev20>0)b.b20=b.b20+v.dev20;if(v.dev10>0)b.b10=b.b10+v.dev10;bCasaModificado.add(nomCli);}
+  if(v.cliente){const nomCli=v.cliente;if(v.nuevaDeuda>0)deudas[nomCli]=Math.max(0,(deudas[nomCli]||0)-v.nuevaDeuda);if(v.deudaSaldada>0)deudas[nomCli]=(deudas[nomCli]||0)+v.deudaSaldada;if(v.saldoUsado>0)deudas[nomCli]=(deudas[nomCli]||0)-v.saldoUsado;if(v.nombre==='Pago')deudas[nomCli]=(deudas[nomCli]||0)+v.total;const b=bCasa[nomCli];if(b){if(v.nombre&&(v.nombre.includes('20L')||v.nombre.includes('Bidón 20')))b.b20=Math.max(0,b.b20-v.cant);if(v.nombre&&(v.nombre.includes('10L')||v.nombre.includes('Bidón 10')))b.b10=Math.max(0,b.b10-v.cant);if(v.dev20>0)b.b20=b.b20+v.dev20;if(v.dev10>0)b.b10=b.b10+v.dev10;bCasaModificado.add(nomCli);}
     if(v.nombre&&v.nombre.includes('Entrega dispenser')&&!ventas.filter((_,i)=>i!==idx).some(o=>o.cliente===nomCli&&o.nombre&&o.nombre.includes('Entrega dispenser'))){CLIENTES_DISPENSER.delete(nomCli);sincronizarDispensersLista();}}
   ventas.splice(idx,1);
   recalcularDesdeVentas(ventas); // recalcular abonos y dispenserMes antes de sincronizar
@@ -1106,7 +1113,7 @@ function actualizarResumen(){
     const mins=Math.round((new Date()-new Date(v.hora))/60000);const t=mins<1?'ahora mismo':mins<60?'hace '+mins+' min':'hace '+Math.round(mins/60)+' h';
     const dv=[];if(v.dev20>0)dv.push(v.dev20+' vacíos 20L');if(v.dev10>0)dv.push(v.dev10+' vacíos 10L');const dvh=dv.length?`<div class="hist-bidones">♻️ ${dv.join(' · ')}</div>`:'';
     const pi=v.pago==='efectivo'?'💵':v.pago==='transferencia'?'📲':'❌';const esPago=v.nombre==='Pago';
-    const deh=esPago?`<div class="hist-bidones" style="color:#3B6D11;">💰 Pago recibido</div>`:v.nuevaDeuda>0?`<div class="hist-bidones" style="color:#B42318;">⚠ Quedó debiendo ${fmt(v.nuevaDeuda)}</div>`:v.deudaSaldada>0?`<div class="hist-bidones" style="color:#3B6D11;">✓ Saldó ${fmt(v.deudaSaldada)}</div>`:'';
+    const deh=esPago?`<div class="hist-bidones" style="color:#3B6D11;">💰 Pago recibido</div>`:v.nuevaDeuda>0?`<div class="hist-bidones" style="color:#B42318;">⚠ Quedó debiendo ${fmt(v.nuevaDeuda)}</div>`:v.deudaSaldada>0?`<div class="hist-bidones" style="color:#3B6D11;">✓ Saldó ${fmt(v.deudaSaldada)}</div>`:v.saldoUsado>0?`<div class="hist-bidones" style="color:#0F6E56;">✓ Usó saldo a favor ${fmt(v.saldoUsado)}</div>`:'';
     const delBtn=canDel?`<button onclick="eliminarVenta(${idx})" style="background:none;border:none;cursor:pointer;color:#B42318;font-size:18px;padding:0 0 0 6px;line-height:1;flex-shrink:0;">✕</button>`:'';
     return `<div class="historial-row"><div style="flex:1;min-width:0;"><div class="hist-desc">${v.nombre}×${v.cant}${v.cliente?' · '+v.cliente:''}<span style="margin-left:4px;">${pi}</span>${v.usuario?' <span style="font-size:11px;color:#8e8e93;">'+v.usuario+'</span>':''}</div><div class="hist-hora">${t}</div>${dvh}${deh}</div><div style="display:flex;align-items:center;gap:4px;flex-shrink:0;"><div class="hist-monto">${v.pago==='nopago'?'<span style="color:#B42318;">+'+fmt(v.total)+'</span>':'+'+fmt(v.total)}</div>${delBtn}</div></div>`;
   }).join('');

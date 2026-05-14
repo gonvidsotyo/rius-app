@@ -1579,7 +1579,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.22.0</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.22.1</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2270,7 +2270,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.22.0</div>
+      <div class="login-version">v1.22.1</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2285,7 +2285,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.22.0</div>
+      <div class="login-version">v1.22.1</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -3518,9 +3518,21 @@ function abrirMaps(dirEncoded){window.open('https://www.google.com/maps/search/?
 let rutaParadas=[],rutaOrigen=null,rutaDestino=null;
 let rutaConfigInicio='gps',rutaConfigFin='ninguno';
 
-async function geocodificarDir(dir){
-  const q=encodeURIComponent(dir+', Buenos Aires, Argentina');
-  try{const r=await fetch('https://nominatim.openstreetmap.org/search?q='+q+'&format=json&limit=1&countrycodes=ar');const j=await r.json();if(j.length)return{lat:parseFloat(j[0].lat),lng:parseFloat(j[0].lon)};}catch(e){}
+async function geocodificarDir(dir, loc){
+  // Siempre incluir la localidad en la query para evitar geocodificar en CABA u otra ciudad
+  const partes=[dir,loc,'Buenos Aires','Argentina'].filter(Boolean);
+  const q=encodeURIComponent(partes.join(', '));
+  // viewbox = provincia de Buenos Aires (preferencia, no restricción estricta)
+  const vb='&viewbox=-64.0%2C-39.8%2C-56.5%2C-33.0&bounded=0';
+  try{
+    const r=await fetch('https://nominatim.openstreetmap.org/search?q='+q+'&format=json&limit=3&countrycodes=ar'+vb);
+    const j=await r.json();
+    if(!j.length)return null;
+    // Si hay varios resultados, preferir el que esté dentro de la provincia de Buenos Aires
+    const enProv=j.find(x=>{const la=parseFloat(x.lat),ln=parseFloat(x.lon);return la>=-39.8&&la<=-33&&ln>=-64&&ln<=-56.5;});
+    const res=enProv||j[0];
+    return{lat:parseFloat(res.lat),lng:parseFloat(res.lon)};
+  }catch(e){}
   return null;
 }
 function distKm(a,b){const R=6371,dL=(b.lat-a.lat)*Math.PI/180,dN=(b.lng-a.lng)*Math.PI/180,h=Math.sin(dL/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dN/2)**2;return R*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));}
@@ -3598,7 +3610,7 @@ async function armarRuta(){
   else if(rutaConfigFin==='gps'){try{destino=await new Promise(res=>navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),()=>res(null),{timeout:5000}));}catch(e){}}
   else if(rutaConfigFin==='custom'){const addr=document.getElementById('fin-custom-input').value.trim();if(addr){prog('Geocodificando llegada...');destino=await geocodificarDir(addr);await new Promise(r=>setTimeout(r,1100));}}
   // Geocodificar paradas con rate limit Nominatim
-  for(let i=0;i<conDir.length;i++){prog(`Geocodificando dirección ${i+1} de ${conDir.length}...`);conDir[i].coords=await geocodificarDir(conDir[i].dirCompleta);if(i<conDir.length-1)await new Promise(r=>setTimeout(r,1100));}
+  for(let i=0;i<conDir.length;i++){prog(`Geocodificando dirección ${i+1} de ${conDir.length}...`);conDir[i].coords=await geocodificarDir(conDir[i].dir,conDir[i].loc);if(i<conDir.length-1)await new Promise(r=>setTimeout(r,1100));}
   // Optimizar: vecino más cercano → 2-opt
   prog('Optimizando con 2-opt...');
   const conCoords=conDir.filter(p=>p.coords);

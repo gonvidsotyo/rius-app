@@ -1579,7 +1579,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.22.1</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.22.2</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2270,7 +2270,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.22.1</div>
+      <div class="login-version">v1.22.2</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2285,7 +2285,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.22.1</div>
+      <div class="login-version">v1.22.2</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -3517,6 +3517,9 @@ function abrirMaps(dirEncoded){window.open('https://www.google.com/maps/search/?
 // ---- RUTA ----
 let rutaParadas=[],rutaOrigen=null,rutaDestino=null;
 let rutaConfigInicio='gps',rutaConfigFin='ninguno';
+let CLIENTES_COORDS=JSON.parse(localStorage.getItem('clientesCoords')||'{}');
+function guardarCoordsCliente(nombre,coords){CLIENTES_COORDS[nombre]={lat:coords.lat,lng:coords.lng};localStorage.setItem('clientesCoords',JSON.stringify(CLIENTES_COORDS));}
+function limpiarCoordsCliente(nombre){delete CLIENTES_COORDS[nombre];localStorage.setItem('clientesCoords',JSON.stringify(CLIENTES_COORDS));}
 
 async function geocodificarDir(dir, loc){
   // Siempre incluir la localidad en la query para evitar geocodificar en CABA u otra ciudad
@@ -3566,8 +3569,12 @@ function renderRutaLista(paradas,origen,destino){
   if(origen)html+=`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:.5px solid #f2f2f7;"><div style="background:#3B6D11;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">⬤</div><div style="font-size:13px;color:#3B6D11;font-weight:600;">Tu ubicación actual</div></div>`;
   paradas.forEach((p,i)=>{
     const distTxt=p.distancia!==undefined?`<span style="font-size:11px;color:#aeaeb2;"> · ${p.distancia<1?Math.round(p.distancia*1000)+'m':p.distancia.toFixed(1)+'km'}</span>`:'';
-    const sinDirBadge=!p.coords?`<span style="font-size:10px;color:#B42318;background:#FDECEA;border-radius:4px;padding:1px 5px;margin-left:4px;">sin dirección</span><button onclick="abrirMapaPicker(${i})" style="font-size:10px;color:#185FA5;background:none;border:1px solid #185FA5;border-radius:4px;padding:1px 6px;margin-left:4px;cursor:pointer;">📍 Ubicar</button>`:'';
-    html+=`<div id="parada-row-${i}" style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:.5px solid #f2f2f7;"><div style="background:${p.coords?'#185FA5':'#aeaeb2'};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;color:#111;">${p.cliente}${sinDirBadge}${distTxt}</div><div style="font-size:12px;color:#8e8e93;">${getIcon(p.prodNombre)} ${p.prodNombre} x${p.cant}${p.nota?' · '+p.nota:''}</div>${p.dir?`<div style="font-size:12px;color:#185FA5;margin-top:2px;">${p.dir}</div>`:''}</div></div>`;
+    const sinDirBadge=!p.coords?`<span style="font-size:10px;color:#B42318;background:#FDECEA;border-radius:4px;padding:1px 5px;margin-left:4px;">sin dirección</span>`:'';
+    const guardado=CLIENTES_COORDS[p.cliente];
+    const pinColor=!p.coords?'#B42318':guardado?'#3B6D11':'#8e8e93';
+    const pinTitle=!p.coords?'Ubicar en mapa':guardado?'Guardada — tocar para cambiar':'Estimada — tocar para ajustar';
+    const pinBtn=`<button onclick="abrirMapaPicker(${i})" title="${pinTitle}" style="font-size:10px;color:#fff;background:${pinColor};border:none;border-radius:4px;padding:1px 6px;margin-left:4px;cursor:pointer;vertical-align:middle;">📍</button>`;
+    html+=`<div id="parada-row-${i}" style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:.5px solid #f2f2f7;"><div style="background:${p.coords?'#185FA5':'#aeaeb2'};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;color:#111;">${p.cliente}${sinDirBadge}${pinBtn}${distTxt}</div><div style="font-size:12px;color:#8e8e93;">${getIcon(p.prodNombre)} ${p.prodNombre} x${p.cant}${p.nota?' · '+p.nota:''}</div>${p.dir?`<div style="font-size:12px;color:#185FA5;margin-top:2px;">${p.dir}</div>`:''}</div></div>`;
   });
   if(destino)html+=`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;"><div style="background:#3B6D11;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">🏁</div><div style="font-size:13px;color:#3B6D11;font-weight:600;">Punto de llegada</div></div>`;
   document.getElementById('ruta-lista').innerHTML=html;
@@ -3609,8 +3616,13 @@ async function armarRuta(){
   if(rutaConfigFin==='inicio'){destino=origen;}
   else if(rutaConfigFin==='gps'){try{destino=await new Promise(res=>navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),()=>res(null),{timeout:5000}));}catch(e){}}
   else if(rutaConfigFin==='custom'){const addr=document.getElementById('fin-custom-input').value.trim();if(addr){prog('Geocodificando llegada...');destino=await geocodificarDir(addr);await new Promise(r=>setTimeout(r,1100));}}
-  // Geocodificar paradas con rate limit Nominatim
-  for(let i=0;i<conDir.length;i++){prog(`Geocodificando dirección ${i+1} de ${conDir.length}...`);conDir[i].coords=await geocodificarDir(conDir[i].dir,conDir[i].loc);if(i<conDir.length-1)await new Promise(r=>setTimeout(r,1100));}
+  // Geocodificar paradas — usa coords guardadas si existen, si no geocodifica
+  let geocodCount=0;
+  for(let i=0;i<conDir.length;i++){
+    const cached=CLIENTES_COORDS[conDir[i].cliente];
+    if(cached){conDir[i].coords=cached;conDir[i].coordsGuardadas=true;}
+    else{geocodCount++;prog(`Geocodificando ${geocodCount} de ${conDir.filter(x=>!CLIENTES_COORDS[x.cliente]).length}...`);conDir[i].coords=await geocodificarDir(conDir[i].dir,conDir[i].loc);if(i<conDir.length-1)await new Promise(r=>setTimeout(r,1100));}
+  }
   // Optimizar: vecino más cercano → 2-opt
   prog('Optimizando con 2-opt...');
   const conCoords=conDir.filter(p=>p.coords);
@@ -3634,30 +3646,47 @@ function cerrarRuta(){document.getElementById('modal-ruta').classList.remove('vi
 
 let mapaPicker=null,mapaPickerMarker=null,mapaPickerIdx=null;
 
+function colocarMarkerPicker(lat,lng){
+  const ll=L.latLng(lat,lng);
+  if(mapaPickerMarker){mapaPickerMarker.setLatLng(ll);}
+  else{
+    mapaPickerMarker=L.marker(ll,{draggable:true}).addTo(mapaPicker);
+    mapaPickerMarker.on('drag dragend',function(e){
+      const p=e.target.getLatLng();
+      document.getElementById('mapa-picker-hint').textContent=`${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}`;
+    });
+  }
+  const btn=document.getElementById('mapa-picker-confirm');
+  btn.disabled=false;btn.style.opacity='1';btn.textContent='Confirmar ubicación';
+}
+
 function abrirMapaPicker(idx){
   mapaPickerIdx=idx;
   const p=rutaParadas[idx];
-  document.getElementById('mapa-picker-titulo').textContent=p.cliente;
-  document.getElementById('mapa-picker-hint').textContent='Tocá el punto exacto de la dirección';
-  const btn=document.getElementById('mapa-picker-confirm');
-  btn.disabled=true;btn.style.opacity='.4';btn.textContent='Tocá el mapa para ubicar';
+  const guardado=CLIENTES_COORDS[p.cliente];
+  document.getElementById('mapa-picker-titulo').textContent=p.cliente+(guardado?' 📌':'');
   const modal=document.getElementById('modal-mapa-picker');
   modal.style.display='flex';
+  // Centro: coords existentes → GPS inicio → Buenos Aires
+  const centroCoords=p.coords||rutaOrigen||{lat:-34.6037,lng:-58.3816};
+  const zoom=p.coords?16:14;
   if(!mapaPicker){
-    const centro=rutaOrigen||{lat:-34.6037,lng:-58.3816};
-    mapaPicker=L.map('mapa-picker-map').setView([centro.lat,centro.lng],14);
+    mapaPicker=L.map('mapa-picker-map').setView([centroCoords.lat,centroCoords.lng],zoom);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapaPicker);
-    mapaPicker.on('click',function(e){
-      if(mapaPickerMarker)mapaPickerMarker.setLatLng(e.latlng);
-      else mapaPickerMarker=L.marker(e.latlng,{draggable:true}).addTo(mapaPicker);
-      const btn=document.getElementById('mapa-picker-confirm');
-      btn.disabled=false;btn.style.opacity='1';btn.textContent='Confirmar ubicación';
-      document.getElementById('mapa-picker-hint').textContent=`${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
-    });
+    mapaPicker.on('click',function(e){colocarMarkerPicker(e.latlng.lat,e.latlng.lng);document.getElementById('mapa-picker-hint').textContent=`${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;});
   } else {
-    if(mapaPickerMarker){mapaPicker.removeLayer(mapaPickerMarker);mapaPickerMarker=null;}
-    const centro=rutaOrigen||{lat:-34.6037,lng:-58.3816};
-    mapaPicker.setView([centro.lat,centro.lng],14);
+    mapaPicker.setView([centroCoords.lat,centroCoords.lng],zoom);
+  }
+  // Resetear marker
+  if(mapaPickerMarker){mapaPicker.removeLayer(mapaPickerMarker);mapaPickerMarker=null;}
+  const btn=document.getElementById('mapa-picker-confirm');
+  // Si ya tiene coords, pre-colocar el pin
+  if(p.coords){
+    colocarMarkerPicker(p.coords.lat,p.coords.lng);
+    document.getElementById('mapa-picker-hint').textContent=guardado?'📌 Guardada — mové el pin para cambiar':'📍 Estimada — mové el pin si es necesario';
+  } else {
+    btn.disabled=true;btn.style.opacity='.4';btn.textContent='Tocá el mapa para ubicar';
+    document.getElementById('mapa-picker-hint').textContent='Tocá el punto exacto de la dirección';
   }
   setTimeout(()=>mapaPicker.invalidateSize(),150);
 }
@@ -3669,7 +3698,10 @@ function cerrarMapaPicker(){
 function confirmarMapaPicker(){
   if(!mapaPickerMarker||mapaPickerIdx===null)return;
   const ll=mapaPickerMarker.getLatLng();
-  rutaParadas[mapaPickerIdx].coords={lat:ll.lat,lng:ll.lng};
+  const coords={lat:ll.lat,lng:ll.lng};
+  rutaParadas[mapaPickerIdx].coords=coords;
+  rutaParadas[mapaPickerIdx].coordsGuardadas=true;
+  guardarCoordsCliente(rutaParadas[mapaPickerIdx].cliente,coords);
   // Re-optimizar con la nueva parada ubicada
   const conCoords=rutaParadas.filter(p=>p.coords);
   const sinCoords=rutaParadas.filter(p=>!p.coords);

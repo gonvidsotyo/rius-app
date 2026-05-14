@@ -1579,7 +1579,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.22.4</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.22.5</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2203,7 +2203,8 @@ select {
     </div>
     <div id="ruta-lista" style="overflow-y:auto;padding:12px 18px;flex:1;"></div>
     <div style="padding:14px 18px calc(14px + var(--safe-bot));border-top:1px solid var(--border-soft);display:flex;gap:8px;flex-shrink:0;">
-      <button onclick="abrirRutaMaps()" class="confirm-btn">Abrir en Google Maps</button>
+      <button onclick="reGeocodificarRuta()" style="background:var(--surface);color:var(--text-secondary);border:1.5px solid var(--border-soft);border-radius:12px;padding:13px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">🔄 Re-geocodificar</button>
+      <button onclick="abrirRutaMaps()" class="confirm-btn" style="flex:1;">📍 Abrir en Google Maps</button>
     </div>
   </div>
 </div>
@@ -2270,7 +2271,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.22.4</div>
+      <div class="login-version">v1.22.5</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2285,7 +2286,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.22.4</div>
+      <div class="login-version">v1.22.5</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -3658,6 +3659,36 @@ async function armarRuta(){
 }
 
 function cerrarRuta(){document.getElementById('modal-ruta').classList.remove('visible');}
+
+async function reGeocodificarRuta(){
+  if(!confirm('Se borrarán las ubicaciones guardadas de todos los clientes de esta ruta y se volverán a buscar desde sus direcciones actuales. ¿Continuar?'))return;
+  const prog=t=>{document.getElementById('ruta-lista').innerHTML=`<div style="text-align:center;padding:40px 16px;color:var(--text-muted);font-size:14px;"><div style="font-size:28px;margin-bottom:10px;">🔄</div><div id="ruta-progreso">${t}</div></div>`;};
+  // Borrar coords guardadas de todos los clientes de la ruta
+  rutaParadas.forEach(p=>{delete p.coords;delete p.distancia;delete p.coordsGuardadas;limpiarCoordsCliente(p.cliente);});
+  // Re-geocodificar con rate limit Nominatim
+  const conDir=rutaParadas.filter(p=>p.dir||p.loc);
+  for(let i=0;i<conDir.length;i++){
+    prog(`Geocodificando ${i+1} de ${conDir.length}...`);
+    conDir[i].coords=await geocodificarDir(conDir[i].dir,conDir[i].loc);
+    if(i<conDir.length-1)await new Promise(r=>setTimeout(r,1100));
+  }
+  // Re-optimizar
+  prog('Optimizando...');
+  const conCoords=rutaParadas.filter(p=>p.coords);
+  const sinCoords=rutaParadas.filter(p=>!p.coords);
+  let ordenadas=conCoords;
+  if(conCoords.length>1){
+    const puntoInicio=rutaOrigen||conCoords[0].coords;
+    ordenadas=vecinoMasCercano(puntoInicio,conCoords);
+    dosOpt(ordenadas,rutaOrigen,rutaDestino);
+    recalcDistancias(ordenadas,rutaOrigen);
+  }
+  rutaParadas=[...ordenadas,...sinCoords];
+  const sinD=sinCoords.length;
+  const distTotal=ordenadas.reduce((s,p)=>s+(p.distancia||0),0);
+  document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · ${distTotal.toFixed(1)} km${sinD>0?' · '+sinD+' sin dirección':''}`;
+  renderRutaLista(rutaParadas,rutaOrigen,rutaDestino);
+}
 
 let mapaPicker=null,mapaPickerMarker=null,mapaPickerIdx=null;
 

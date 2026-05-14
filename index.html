@@ -1579,7 +1579,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.22.3</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.22.4</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2270,7 +2270,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.22.3</div>
+      <div class="login-version">v1.22.4</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2285,7 +2285,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.22.3</div>
+      <div class="login-version">v1.22.4</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -3529,18 +3529,26 @@ function guardarCoordsCliente(nombre,coords){
 function limpiarCoordsCliente(nombre){delete CLIENTES_COORDS[nombre];localStorage.setItem('clientesCoords',JSON.stringify(CLIENTES_COORDS));}
 
 async function geocodificarDir(dir, loc){
-  // Siempre incluir la localidad en la query para evitar geocodificar en CABA u otra ciudad
+  // Punto de referencia: centro del Partido de San Vicente, Buenos Aires
+  const REF={lat:-35.0167,lng:-58.4167};
   const partes=[dir,loc,'Buenos Aires','Argentina'].filter(Boolean);
   const q=encodeURIComponent(partes.join(', '));
-  // viewbox = provincia de Buenos Aires (preferencia, no restricción estricta)
-  const vb='&viewbox=-64.0%2C-39.8%2C-56.5%2C-33.0&bounded=0';
+  const elegirMasCercano=j=>j.map(x=>({...x,_d:distKm(REF,{lat:parseFloat(x.lat),lng:parseFloat(x.lon)})})).sort((a,b)=>a._d-b._d)[0];
+  // 1ª búsqueda: acotada al área de San Vicente y alrededores (radio ~80km)
+  // bbox: S -35.7 N -34.3 W -59.2 E -57.5
+  const vbLocal='&viewbox=-59.2%2C-35.7%2C-57.5%2C-34.3&bounded=1';
   try{
-    const r=await fetch('https://nominatim.openstreetmap.org/search?q='+q+'&format=json&limit=3&countrycodes=ar'+vb);
+    const r=await fetch('https://nominatim.openstreetmap.org/search?q='+q+'&format=json&limit=5&countrycodes=ar'+vbLocal);
+    const j=await r.json();
+    if(j.length){const res=elegirMasCercano(j);return{lat:parseFloat(res.lat),lng:parseFloat(res.lon)};}
+  }catch(e){}
+  // 2ª búsqueda: toda la provincia de Buenos Aires, eligiendo el resultado más cercano a San Vicente
+  const vbProv='&viewbox=-64.0%2C-39.8%2C-56.5%2C-33.0&bounded=0';
+  try{
+    const r=await fetch('https://nominatim.openstreetmap.org/search?q='+q+'&format=json&limit=5&countrycodes=ar'+vbProv);
     const j=await r.json();
     if(!j.length)return null;
-    // Si hay varios resultados, preferir el que esté dentro de la provincia de Buenos Aires
-    const enProv=j.find(x=>{const la=parseFloat(x.lat),ln=parseFloat(x.lon);return la>=-39.8&&la<=-33&&ln>=-64&&ln<=-56.5;});
-    const res=enProv||j[0];
+    const res=elegirMasCercano(j);
     return{lat:parseFloat(res.lat),lng:parseFloat(res.lon)};
   }catch(e){}
   return null;

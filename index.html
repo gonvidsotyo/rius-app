@@ -1437,7 +1437,7 @@ select {
 #modal-mapa-picker > div { background: var(--surface); border-color: var(--border-soft) !important; }
 
 /* Make sure all generic divs in route modal respect theme */
-#modal-ruta .modal-ped-box,
+#modal-ruta,
 #modal-ruta-config > div {
   background: var(--surface) !important;
   color: var(--text);
@@ -1579,7 +1579,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.22.7</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.23.0</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2093,6 +2093,12 @@ select {
     </div>
   </div>
 
+  <!-- ================= RUTAS ================= -->
+  <div id="rutas" class="screen">
+    <div class="page-title">Rutas guardadas</div>
+    <div id="rutas-lista"></div>
+  </div>
+
   <!-- ================= BOTTOM NAV ================= -->
   <nav class="nav">
     <button class="nav-btn active" onclick="showScreen('inicio')">
@@ -2118,6 +2124,10 @@ select {
     <button class="nav-btn" onclick="showScreen('gastos')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
       <span>Gastos</span>
+    </button>
+    <button class="nav-btn" onclick="showScreen('rutas')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      <span>Rutas</span>
     </button>
   </nav>
 </div>
@@ -2192,19 +2202,35 @@ select {
 </div>
 
 <!-- ================= MODAL RUTA ================= -->
-<div class="modal-overlay" id="modal-ruta" style="align-items:flex-end;padding:0;">
-  <div class="modal-ped-box" style="max-height:85vh;display:flex;flex-direction:column;padding:0;">
-    <div style="padding:18px 18px 12px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-      <div>
-        <div style="font-size:17px;font-weight:700;color:var(--text);letter-spacing:-0.02em;">Ruta del día</div>
-        <div id="ruta-subtitulo" style="font-size:12px;color:var(--text-muted);margin-top:2px;font-weight:500;"></div>
-      </div>
+<div id="modal-ruta" style="display:none;position:fixed;inset:0;z-index:2000;background:var(--surface);flex-direction:column;">
+  <div style="padding:18px 18px 12px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div>
+      <div style="font-size:17px;font-weight:700;color:var(--text);letter-spacing:-0.02em;">Ruta del día</div>
+      <div id="ruta-subtitulo" style="font-size:12px;color:var(--text-muted);margin-top:2px;font-weight:500;"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button onclick="abrirAgregarParada()" style="background:var(--brand-primary);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;">+</button>
       <button onclick="cerrarRuta()" style="background:none;border:none;font-size:22px;color:var(--text-muted);padding:0;">✕</button>
     </div>
-    <div id="ruta-lista" style="overflow-y:auto;padding:12px 18px;flex:1;"></div>
-    <div style="padding:14px 18px calc(14px + var(--safe-bot));border-top:1px solid var(--border-soft);display:flex;gap:8px;flex-shrink:0;">
-      <button onclick="reGeocodificarRuta()" style="background:var(--surface);color:var(--text-secondary);border:1.5px solid var(--border-soft);border-radius:12px;padding:13px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">🔄 Re-geocodificar</button>
-      <button onclick="abrirRutaMaps()" class="confirm-btn" style="flex:1;">📍 Abrir en Google Maps</button>
+  </div>
+  <div id="ruta-lista" style="overflow-y:auto;padding:12px 18px;flex:1;"></div>
+  <div style="padding:14px 18px calc(14px + var(--safe-bot));border-top:1px solid var(--border-soft);display:flex;gap:8px;flex-shrink:0;">
+    <button onclick="guardarRutaActual()" style="background:var(--surface);color:var(--text-secondary);border:1.5px solid var(--border-soft);border-radius:12px;padding:13px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">💾 Guardar</button>
+    <button onclick="reGeocodificarRuta()" style="background:var(--surface);color:var(--text-secondary);border:1.5px solid var(--border-soft);border-radius:12px;padding:13px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">🔄 Re-geo</button>
+    <button onclick="abrirRutaMaps()" class="confirm-btn" style="flex:1;">📍 Abrir en Maps</button>
+  </div>
+</div>
+
+<!-- ================= MODAL AGREGAR PARADA ================= -->
+<div class="modal-overlay" id="modal-agregar-parada" style="align-items:flex-end;padding:0;">
+  <div class="modal-ped-box" style="padding:0;">
+    <div style="padding:18px 18px 12px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:16px;font-weight:700;color:var(--text);">Agregar parada</div>
+      <button onclick="cerrarAgregarParada()" style="background:none;border:none;font-size:22px;color:var(--text-muted);padding:0;">✕</button>
+    </div>
+    <div id="agregar-parada-contenido" style="padding:16px 18px calc(20px + var(--safe-bot));display:flex;flex-direction:column;gap:10px;">
+      <button onclick="agregarDesdeGedidos()" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;">📋 Desde pedidos pendientes</button>
+      <button onclick="agregarSoloDireccion()" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;">📍 Solo dirección de cliente</button>
     </div>
   </div>
 </div>
@@ -2271,7 +2297,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.22.7</div>
+      <div class="login-version">v1.23.0</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2286,7 +2312,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.22.7</div>
+      <div class="login-version">v1.23.0</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -2743,7 +2769,7 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  ['inicio','pedidos','venta','clientes','stock','gastos'].forEach((s,i)=>{if(s===id)document.querySelectorAll('.nav-btn')[i]?.classList.add('active');});
+  ['inicio','pedidos','venta','clientes','stock','gastos','rutas'].forEach((s,i)=>{if(s===id)document.querySelectorAll('.nav-btn')[i]?.classList.add('active');});
   if(id==='inicio')actualizarResumen();
   if(id==='clientes')renderClientes('');
   if(id==='venta'){limpiarCliente();resetDev();resetEditMonto();pagoActual='efectivo';selPago('efectivo');document.getElementById('cant').value=1;document.getElementById('cant-display').textContent='1';toggleBidDisp();togglePagoDirecto();calcTotal();resetFechaManual();}
@@ -2758,6 +2784,7 @@ function showScreen(id){
     document.getElementById('sesion-actual').textContent=usuarioActual?'👤 '+usuarioActual+(rolNames[rol]?' · '+rolNames[rol]:''):'—';
   }
   if(id==='sync'){cargarPrecios();const s=localStorage.getItem('scriptUrl');if(s){document.getElementById('script-url').value=s;guardarUrl();}}
+  if(id==='rutas')renderRutas();
 }
 
 // ---- FECHA ----
@@ -2901,10 +2928,19 @@ function renderClientes(q){
     const btnAbono=tieneAbonoPendiente(c.nombre)?`<button class="cliente-btn abono" data-nombre="${encodeURIComponent(c.nombre)}" data-action="cobrar-abono" title="Cobrar abono">${SVG_ABONO}<span>Abono</span></button>`:'';
     const btnE=`<button class="cliente-btn edit" data-nombre="${encodeURIComponent(c.nombre)}" data-action="editar" title="Editar">${SVG_EDIT}<span>Editar</span></button>`;
     const btnD=`<button class="cliente-btn del" data-nombre="${encodeURIComponent(c.nombre)}" data-action="eliminar" title="Eliminar">${SVG_DEL}<span>Borrar</span></button>`;
+    const coordsC=CLIENTES_COORDS[c.nombre];
+    const pinColor=coordsC?.fromSheets?'#1f8a4b':'#aeaeb2';
+    const btnPin=`<button data-nombre="${encodeURIComponent(c.nombre)}" data-action="pin" title="Ubicar en mapa" style="background:none;border:none;cursor:pointer;padding:0 0 0 6px;font-size:15px;color:${pinColor};line-height:1;vertical-align:middle;">📍</button>`;
+    const isChecked=CLIENTES_SELECCIONADOS_RUTA.has(c.nombre);
+    const chkStyle=isChecked?'width:22px;height:22px;border-radius:50%;border:none;background:#185FA5;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;':'width:22px;height:22px;border-radius:50%;border:1.5px solid #c7c7cc;background:#fff;color:transparent;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;';
+    const chkBtn=`<button data-nombre="${encodeURIComponent(c.nombre)}" data-action="toggle-sel" style="${chkStyle}">${isChecked?'✓':''}</button>`;
     const w=document.createElement('div');
     w.innerHTML=`<div style="background:#fff;border-radius:12px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden;">
       <div style="padding:12px 14px 10px;">
-        <div style="font-size:15px;font-weight:700;color:#000;">${c.nombre}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div style="font-size:15px;font-weight:700;color:#000;flex:1;min-width:0;">${c.nombre}${btnPin}</div>
+          ${chkBtn}
+        </div>
         ${c.localidad||c.direccion?`<div style="font-size:13px;color:#8e8e93;margin-top:3px;">📍 ${[c.localidad,c.direccion].filter(Boolean).join(' · ')}</div>`:''}
         ${c.telefono?`<div style="font-size:13px;color:#8e8e93;margin-top:1px;">📞 ${c.telefono}</div>`:''}
         ${badgesHtml}${deudaHtml}${abonoHtml}
@@ -2913,10 +2949,22 @@ function renderClientes(q){
     </div>`;
     lista.appendChild(w.firstChild);
   });
+  // FAB
+  let fab=document.getElementById('_clientes_fab');
+  if(!fab){fab=document.createElement('button');fab.id='_clientes_fab';fab.onclick=crearRutaDesdeSeleccion;fab.style.cssText='position:fixed;bottom:calc(72px + var(--safe-bot));left:50%;transform:translateX(-50%);background:#185FA5;color:#fff;border:none;border-radius:24px;padding:13px 24px;font-size:15px;font-weight:700;box-shadow:0 4px 16px rgba(24,95,165,.4);z-index:1500;cursor:pointer;white-space:nowrap;display:none;';document.body.appendChild(fab);}
+  fab.textContent=`🗺️ Crear ruta (${CLIENTES_SELECCIONADOS_RUTA.size})`;
+  fab.style.display=CLIENTES_SELECCIONADOS_RUTA.size>0?'block':'none';
   lista.onclick=function(e){
     const btn=e.target.closest('button[data-action]');if(!btn)return;
     const action=btn.dataset.action;
     const nombre=btn.dataset.nombre?decodeURIComponent(btn.dataset.nombre):'';
+    if(action==='toggle-sel'){
+      if(CLIENTES_SELECCIONADOS_RUTA.has(nombre))CLIENTES_SELECCIONADOS_RUTA.delete(nombre);
+      else CLIENTES_SELECCIONADOS_RUTA.add(nombre);
+      renderClientes(document.querySelector('#clientes .search-bar')?.value||'');
+      return;
+    }
+    if(action==='pin'){abrirMapaPickerCliente(nombre);return;}
     if(action==='wsp'){const tel=btn.dataset.tel;const numF=tel.startsWith('54')?tel:'54'+(tel.startsWith('0')?tel.slice(1):tel);window.open('https://wa.me/'+numF,'_blank');}
     else if(action==='maps'){window.open('https://www.google.com/maps/search/?api=1&query='+btn.dataset.dir,'_blank');}
     else if(action==='editar'){abrirModalEditarCliente(nombre);}
@@ -3349,7 +3397,7 @@ function filtrarGastos(filtro){
 let usuarioActual=null,usuarioPendiente=null,usuarioAEliminar=null;
 function mostrarApp(){document.getElementById('app-body').style.display='block';}
 function ocultarApp(){document.getElementById('app-body').style.display='none';}
-const PERMISOS={admin:['inicio','pedidos','venta','clientes','stock','gastos','usuarios','sync'],gerente:['inicio','pedidos','venta','clientes','stock','gastos','usuarios'],repartidor:['inicio','pedidos','venta','clientes']};
+const PERMISOS={admin:['inicio','pedidos','venta','clientes','stock','gastos','usuarios','sync','rutas'],gerente:['inicio','pedidos','venta','clientes','stock','gastos','usuarios','rutas'],repartidor:['inicio','pedidos','venta','clientes','rutas']};
 const PERMISOS_LABELS={admin:'👑 <b>God:</b> Acceso total',gerente:'📊 <b>Gerente:</b> Resumen, Pedidos, Venta, Clientes, Stock, Gastos',repartidor:'🚚 <b>Repartidor:</b> Resumen, Pedidos, Venta, Clientes'};
 function resetFechaManual(){
   const inp=document.getElementById('fecha-manual');
@@ -3372,7 +3420,7 @@ function getFechaVenta(){
 function getRol(){const us=cargarUsuarios().find(u=>u.nombre===usuarioActual);return us?.rol||'repartidor';}
 function aplicarPermisos(){
   const rol=getRol();const permitidas=PERMISOS[rol]||PERMISOS.repartidor;
-  const navScreens=['inicio','pedidos','venta','clientes','stock','gastos'];
+  const navScreens=['inicio','pedidos','venta','clientes','stock','gastos','rutas'];
   document.querySelectorAll('.nav-btn').forEach((btn,i)=>{const s=navScreens[i];if(s)btn.style.display=permitidas.includes(s)?'':'none';});
   document.querySelectorAll('button[onclick*="showScreen"]').forEach(btn=>{const m=btn.getAttribute('onclick').match(/showScreen\('(\w+)'\)/);if(!m)return;btn.style.display=permitidas.includes(m[1])?'':'none';});
   const btnU=document.getElementById('btn-usuarios-topbar');if(btnU)btnU.classList.toggle('is-admin',rol==='admin');
@@ -3517,6 +3565,7 @@ function abrirMaps(dirEncoded){window.open('https://www.google.com/maps/search/?
 
 // ---- RUTA ----
 let rutaParadas=[],rutaOrigen=null,rutaDestino=null;
+let CLIENTES_SELECCIONADOS_RUTA=new Set();
 let rutaConfigInicio='gps',rutaConfigFin='ninguno';
 let CLIENTES_COORDS=JSON.parse(localStorage.getItem('clientesCoords')||'{}');
 function guardarCoordsCliente(nombre,coords){
@@ -3590,10 +3639,115 @@ function renderRutaLista(paradas,origen,destino){
     const pinColor=!p.coords?'#B42318':guardado?'#3B6D11':'#8e8e93';
     const pinTitle=!p.coords?'Ubicar en mapa':guardado?'Guardada — tocar para cambiar':'Estimada — tocar para ajustar';
     const pinBtn=`<button onclick="abrirMapaPicker(${i})" title="${pinTitle}" style="font-size:10px;color:#fff;background:${pinColor};border:none;border-radius:4px;padding:1px 6px;margin-left:4px;cursor:pointer;vertical-align:middle;">📍</button>`;
-    html+=`<div id="parada-row-${i}" style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:.5px solid #f2f2f7;"><div style="background:${p.coords?'#185FA5':'#aeaeb2'};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;color:#111;">${p.cliente}${sinDirBadge}${pinBtn}${distTxt}</div><div style="font-size:12px;color:#8e8e93;">${getIcon(p.prodNombre)} ${p.prodNombre} x${p.cant}${p.nota?' · '+p.nota:''}</div>${p.dir?`<div style="font-size:12px;color:#185FA5;margin-top:2px;">${p.dir}</div>`:''}</div></div>`;
+    const removeBtn=`<button onclick="removerParada(${i})" style="background:none;border:none;color:#aeaeb2;font-size:18px;line-height:1;padding:0 0 0 8px;cursor:pointer;flex-shrink:0;align-self:center;">✕</button>`;
+    html+=`<div id="parada-row-${i}" style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:.5px solid #f2f2f7;"><div style="background:${p.coords?'#185FA5':'#aeaeb2'};color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;color:#111;">${p.cliente}${sinDirBadge}${pinBtn}${distTxt}</div><div style="font-size:12px;color:#8e8e93;">${getIcon(p.prodNombre)} ${p.prodNombre} x${p.cant}${p.nota?' · '+p.nota:''}</div>${p.dir?`<div style="font-size:12px;color:#185FA5;margin-top:2px;">${p.dir}</div>`:''}</div>${removeBtn}</div>`;
   });
   if(destino)html+=`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;"><div style="background:#3B6D11;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">🏁</div><div style="font-size:13px;color:#3B6D11;font-weight:600;">Punto de llegada</div></div>`;
   document.getElementById('ruta-lista').innerHTML=html;
+}
+
+function removerParada(idx){
+  rutaParadas.splice(idx,1);
+  if(!rutaParadas.length){cerrarRuta();return;}
+  const conCoords=rutaParadas.filter(p=>p.coords),sinCoords=rutaParadas.filter(p=>!p.coords);
+  if(conCoords.length>1&&rutaOrigen){dosOpt(conCoords,rutaOrigen,rutaDestino);recalcDistancias(conCoords,rutaOrigen);}
+  rutaParadas=[...conCoords,...sinCoords];
+  const distTotal=conCoords.reduce((s,p)=>s+(p.distancia||0),0);
+  document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · ${distTotal.toFixed(1)} km`;
+  renderRutaLista(rutaParadas,rutaOrigen,rutaDestino);
+}
+
+function abrirAgregarParada(){
+  document.getElementById('agregar-parada-contenido').innerHTML=`<button onclick="agregarDesdeGedidos()" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;">📋 Desde pedidos pendientes</button><button onclick="agregarSoloDireccion()" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;">📍 Solo dirección de cliente</button>`;
+  document.getElementById('modal-agregar-parada').classList.add('visible');
+}
+function cerrarAgregarParada(){document.getElementById('modal-agregar-parada').classList.remove('visible');}
+
+function agregarDesdeGedidos(){
+  const yaEnRuta=new Set(rutaParadas.map(p=>p.cliente));
+  const disponibles=pedidos.filter(p=>!yaEnRuta.has(p.cliente));
+  if(!disponibles.length){alert('No hay pedidos pendientes fuera de la ruta actual.');return;}
+  const rows=disponibles.map(p=>`<div onclick="seleccionarParadaDesdePedido('${encodeURIComponent(p.cliente)}')" style="padding:12px 14px;border-bottom:.5px solid var(--border-soft);cursor:pointer;"><div style="font-size:14px;font-weight:600;color:var(--text);">${p.cliente}</div><div style="font-size:12px;color:var(--text-muted);">${p.prodNombre} x${p.cant}</div></div>`).join('');
+  document.getElementById('agregar-parada-contenido').innerHTML=`<div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;font-weight:500;">Tocá un pedido para agregarlo a la ruta:</div><div style="background:var(--surface-2);border-radius:12px;overflow:hidden;">${rows}</div>`;
+}
+
+window.seleccionarParadaDesdePedido=async function(encNombre){
+  const nombre=decodeURIComponent(encNombre);
+  const p=pedidos.find(x=>x.cliente===nombre);
+  if(!p)return;
+  const cli=CLIENTES.find(c=>c.nombre===nombre);
+  const dir=cli?.direccion||'';const loc=cli?.localidad||'';
+  const parada={cliente:nombre,dir,loc,dirCompleta:[dir,loc].filter(Boolean).join(', '),prodNombre:p.prodNombre,cant:p.cant,nota:p.nota||'',coords:CLIENTES_COORDS[nombre]||null};
+  await agregarParadaYOptimizar(parada);
+};
+
+function agregarSoloDireccion(){
+  const rows=CLIENTES.filter(c=>c.direccion||c.localidad).map(c=>`<div onclick="seleccionarClienteSoloDireccion('${encodeURIComponent(c.nombre)}')" style="padding:12px 14px;border-bottom:.5px solid var(--border-soft);cursor:pointer;"><div style="font-size:14px;font-weight:600;color:var(--text);">${c.nombre}</div><div style="font-size:12px;color:var(--text-muted);">${[c.direccion,c.localidad].filter(Boolean).join(' · ')}</div></div>`).join('');
+  const searchId='_agregar_search_'+Date.now();
+  document.getElementById('agregar-parada-contenido').innerHTML=`<input id="${searchId}" type="text" placeholder="Buscar cliente..." oninput="filtrarListaAgregarCliente(this.value)" style="width:100%;padding:10px 12px;border:1.5px solid var(--border-soft);border-radius:10px;font-size:14px;margin-bottom:8px;box-sizing:border-box;" /><div id="agregar-clientes-lista" style="background:var(--surface-2);border-radius:12px;overflow:hidden;max-height:260px;overflow-y:auto;">${rows}</div>`;
+  window._agregar_clientes_rows=rows;
+  setTimeout(()=>document.getElementById(searchId)?.focus(),100);
+}
+
+window.filtrarListaAgregarCliente=function(q){
+  const f=q.toLowerCase();
+  const rows=CLIENTES.filter(c=>(c.direccion||c.localidad)&&(!f||c.nombre.toLowerCase().includes(f)||(c.localidad||'').toLowerCase().includes(f))).map(c=>`<div onclick="seleccionarClienteSoloDireccion('${encodeURIComponent(c.nombre)}')" style="padding:12px 14px;border-bottom:.5px solid var(--border-soft);cursor:pointer;"><div style="font-size:14px;font-weight:600;color:var(--text);">${c.nombre}</div><div style="font-size:12px;color:var(--text-muted);">${[c.direccion,c.localidad].filter(Boolean).join(' · ')}</div></div>`).join('');
+  const el=document.getElementById('agregar-clientes-lista');if(el)el.innerHTML=rows||'<div style="padding:12px;color:var(--text-muted);font-size:13px;">Sin resultados</div>';
+};
+
+window.seleccionarClienteSoloDireccion=async function(encNombre){
+  const nombre=decodeURIComponent(encNombre);
+  const c=CLIENTES.find(x=>x.nombre===nombre);if(!c)return;
+  const dir=c.direccion||'';const loc=c.localidad||'';
+  const parada={cliente:nombre,dir,loc,dirCompleta:[dir,loc].filter(Boolean).join(', '),prodNombre:'Solo entrega',cant:0,nota:'',coords:CLIENTES_COORDS[nombre]||null};
+  await agregarParadaYOptimizar(parada);
+};
+
+async function agregarParadaYOptimizar(parada){
+  cerrarAgregarParada();
+  if(!parada.coords){
+    const cached=CLIENTES_COORDS[parada.cliente];
+    if(cached)parada.coords=cached;
+    else parada.coords=await geocodificarDir(parada.dir,parada.loc);
+  }
+  rutaParadas.push(parada);
+  const conCoords=rutaParadas.filter(p=>p.coords),sinCoords=rutaParadas.filter(p=>!p.coords);
+  let ordenadas=conCoords;
+  if(conCoords.length>1){const p0=rutaOrigen||conCoords[0].coords;ordenadas=vecinoMasCercano(p0,conCoords);dosOpt(ordenadas,rutaOrigen,rutaDestino);recalcDistancias(ordenadas,rutaOrigen);}
+  rutaParadas=[...ordenadas,...sinCoords];
+  const sinD=sinCoords.length,distTotal=ordenadas.reduce((s,p)=>s+(p.distancia||0),0);
+  document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · ${distTotal.toFixed(1)} km${sinD?' · '+sinD+' sin dirección':''}`;
+  renderRutaLista(rutaParadas,rutaOrigen,rutaDestino);
+}
+
+async function crearRutaDesdeSeleccion(){
+  if(!CLIENTES_SELECCIONADOS_RUTA.size)return;
+  const candidatos=[...CLIENTES_SELECCIONADOS_RUTA].map(nombre=>{
+    const c=CLIENTES.find(x=>x.nombre===nombre);
+    const ped=pedidos.find(p=>p.cliente===nombre);
+    return {cliente:nombre,dir:c?.direccion||'',loc:c?.localidad||'',dirCompleta:[c?.direccion,c?.localidad].filter(Boolean).join(', '),prodNombre:ped?ped.prodNombre:'Entrega',cant:ped?ped.cant:0,nota:'',coords:CLIENTES_COORDS[nombre]||null};
+  }).filter(p=>p.dirCompleta);
+  if(!candidatos.length){alert('Los clientes seleccionados no tienen dirección cargada.');return;}
+  CLIENTES_SELECCIONADOS_RUTA.clear();
+  renderClientes('');
+  rutaParadas=[];rutaOrigen=null;rutaDestino=null;
+  document.getElementById('modal-ruta').style.display='flex';
+  const prog=t=>{document.getElementById('ruta-lista').innerHTML=`<div style="text-align:center;padding:40px 16px;color:var(--text-muted);font-size:14px;"><div style="font-size:28px;margin-bottom:10px;">🗺️</div><div id="ruta-progreso">${t}</div></div>`;};
+  prog('Obteniendo ubicación...');
+  document.getElementById('ruta-subtitulo').textContent='Calculando...';
+  let origen=null;
+  try{origen=await new Promise(res=>navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),()=>res(null),{enableHighAccuracy:true,maximumAge:0,timeout:10000}));}catch(e){}
+  for(let i=0;i<candidatos.length;i++){
+    if(!candidatos[i].coords){prog(`Geocodificando ${i+1} de ${candidatos.length}...`);candidatos[i].coords=await geocodificarDir(candidatos[i].dir,candidatos[i].loc);if(i<candidatos.length-1)await new Promise(r=>setTimeout(r,1100));}
+  }
+  prog('Optimizando...');
+  const conCoords=candidatos.filter(p=>p.coords),sinCoords=candidatos.filter(p=>!p.coords);
+  let ordenadas=conCoords;
+  if(conCoords.length>1){const p0=origen||conCoords[0].coords;ordenadas=vecinoMasCercano(p0,conCoords);dosOpt(ordenadas,origen,null);recalcDistancias(ordenadas,origen);}
+  rutaParadas=[...ordenadas,...sinCoords];rutaOrigen=origen;rutaDestino=null;
+  const sinD=sinCoords.length,distTotal=ordenadas.reduce((s,p)=>s+(p.distancia||0),0);
+  document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · ${distTotal.toFixed(1)} km${sinD?' · '+sinD+' sin dirección':''}`;
+  renderRutaLista(rutaParadas,origen,null);
 }
 
 function abrirRutaConfig(){document.getElementById('modal-ruta-config').classList.add('visible');}
@@ -3616,7 +3770,7 @@ async function armarRuta(){
   if(!conDir.length){alert('Ningún pedido tiene dirección cargada en el cliente.');return;}
   document.getElementById('ruta-lista').innerHTML='<div style="text-align:center;padding:32px 16px;color:#8e8e93;"><div style="font-size:28px;margin-bottom:10px;">🗺️</div><div id="ruta-progreso" style="font-size:13px;">Iniciando...</div></div>';
   document.getElementById('ruta-subtitulo').textContent='Optimizando...';
-  document.getElementById('modal-ruta').classList.add('visible');
+  document.getElementById('modal-ruta').style.display='flex';
   const prog=t=>{const e=document.getElementById('ruta-progreso');if(e)e.textContent=t;};
   // Punto de inicio
   prog('Obteniendo punto de inicio...');
@@ -3658,7 +3812,7 @@ async function armarRuta(){
   renderRutaLista(rutaParadas,origen,destino);
 }
 
-function cerrarRuta(){document.getElementById('modal-ruta').classList.remove('visible');}
+function cerrarRuta(){document.getElementById('modal-ruta').style.display='none';}
 
 async function reGeocodificarRuta(){
   if(!confirm('Se borrarán las ubicaciones guardadas de todos los clientes de esta ruta y se volverán a buscar desde sus direcciones actuales. ¿Continuar?'))return;
@@ -3768,10 +3922,44 @@ function cerrarMapaPicker(){
   document.getElementById('modal-mapa-picker').style.display='none';
 }
 
+function abrirMapaPickerCliente(nombre){
+  mapaPickerModo='cliente';
+  mapaPickerIdx=nombre;
+  const coords=CLIENTES_COORDS[nombre];
+  document.getElementById('mapa-picker-titulo').textContent=nombre;
+  const modal=document.getElementById('modal-mapa-picker');
+  modal.style.display='flex';
+  const centro=coords||rutaOrigen||{lat:-35.0167,lng:-58.4167};
+  if(!mapaPicker){
+    mapaPicker=L.map('mapa-picker-map').setView([centro.lat,centro.lng],coords?16:14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapaPicker);
+    mapaPicker.on('click',function(e){colocarMarkerPicker(e.latlng.lat,e.latlng.lng);document.getElementById('mapa-picker-hint').textContent=`${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;});
+  } else {
+    mapaPicker.setView([centro.lat,centro.lng],coords?16:14);
+  }
+  if(mapaPickerMarker){mapaPicker.removeLayer(mapaPickerMarker);mapaPickerMarker=null;}
+  if(coords){
+    colocarMarkerPicker(coords.lat,coords.lng);
+    document.getElementById('mapa-picker-hint').textContent=coords.fromSheets?'📌 Guardada — mové el pin para cambiar':'📍 Estimada — mové el pin si es necesario';
+  } else {
+    const btn=document.getElementById('mapa-picker-confirm');btn.disabled=true;btn.style.opacity='.4';btn.textContent='Tocá el mapa para ubicar';
+    document.getElementById('mapa-picker-hint').textContent='Tocá la dirección exacta del cliente';
+  }
+  setTimeout(()=>mapaPicker.invalidateSize(),150);
+}
+
 function confirmarMapaPicker(){
   if(!mapaPickerMarker)return;
   const ll=mapaPickerMarker.getLatLng();
   const coords={lat:ll.lat,lng:ll.lng};
+  if(mapaPickerModo==='cliente'){
+    const nombre=mapaPickerIdx;
+    guardarCoordsCliente(nombre,coords);
+    cerrarMapaPicker();
+    const q=document.querySelector('#clientes .search-bar')?.value||'';
+    renderClientes(q);
+    return;
+  }
   if(mapaPickerModo==='inicio'){
     // Actualizar punto de inicio y re-optimizar
     rutaOrigen=coords;
@@ -3826,6 +4014,54 @@ function abrirRutaMaps(){
     {enableHighAccuracy:true,maximumAge:0,timeout:10000}
   );
 }
+function guardarRutaActual(){
+  if(!rutaParadas.length){alert('No hay paradas en la ruta actual.');return;}
+  const nombre=prompt('Nombre para esta ruta:','Ruta del '+new Date().toLocaleDateString('es-AR'));
+  if(!nombre)return;
+  const rutas=JSON.parse(localStorage.getItem('rius_rutas')||'[]');
+  const distTotal=rutaParadas.filter(p=>p.coords).reduce((s,p)=>s+(p.distancia||0),0);
+  rutas.unshift({id:Date.now(),fecha:new Date().toISOString(),nombre,paradas:rutaParadas.map(p=>({cliente:p.cliente,dir:p.dir,loc:p.loc,dirCompleta:p.dirCompleta,prodNombre:p.prodNombre,cant:p.cant,nota:p.nota,coords:p.coords})),distTotal,origen:rutaOrigen});
+  localStorage.setItem('rius_rutas',JSON.stringify(rutas));
+  alert('✓ Ruta guardada: '+nombre);
+}
+
+function renderRutas(){
+  const lista=document.getElementById('rutas-lista');if(!lista)return;
+  const rutas=JSON.parse(localStorage.getItem('rius_rutas')||'[]');
+  if(!rutas.length){lista.innerHTML='<div style="font-size:13px;color:#aeaeb2;padding:12px 0;">No hay rutas guardadas.</div>';return;}
+  lista.innerHTML=rutas.map(r=>{
+    const d=new Date(r.fecha);const ds=d.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'});
+    return `<div style="background:#fff;border-radius:12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:14px 16px;">
+      <div style="font-size:15px;font-weight:700;color:var(--text);">${r.nombre}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">${ds} · ${r.paradas.length} parada${r.paradas.length!==1?'s':''} · ${(r.distTotal||0).toFixed(1)} km</div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button onclick="repetirRuta(${r.id})" style="flex:1;background:var(--brand-primary);color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;">🔁 Repetir</button>
+        <button onclick="eliminarRutaGuardada(${r.id})" style="background:var(--surface-2);color:var(--brand-red);border:1.5px solid var(--border-soft);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function repetirRuta(id){
+  const rutas=JSON.parse(localStorage.getItem('rius_rutas')||'[]');
+  const r=rutas.find(x=>x.id===id);if(!r)return;
+  rutaParadas=r.paradas.map(p=>({...p}));
+  rutaOrigen=r.origen||null;rutaDestino=null;
+  const conCoords=rutaParadas.filter(p=>p.coords);
+  const distTotal=conCoords.reduce((s,p)=>s+(p.distancia||0),0);
+  const sinD=rutaParadas.filter(p=>!p.coords).length;
+  document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · ${distTotal.toFixed(1)} km${sinD?' · '+sinD+' sin dirección':''}`;
+  document.getElementById('modal-ruta').style.display='flex';
+  renderRutaLista(rutaParadas,rutaOrigen,rutaDestino);
+}
+
+function eliminarRutaGuardada(id){
+  if(!confirm('¿Eliminar esta ruta guardada?'))return;
+  const rutas=JSON.parse(localStorage.getItem('rius_rutas')||'[]').filter(x=>x.id!==id);
+  localStorage.setItem('rius_rutas',JSON.stringify(rutas));
+  renderRutas();
+}
+
 function abrirWhatsappPedido(id){const p=pedidos.find(x=>x.id===id);if(!p)return;const num=p.telefono.replace(/[^0-9]/g,'');const d=parseFecha(p.fecha);const fs=d?d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}):p.fecha;const msg=encodeURIComponent('Hola '+p.cliente+'! Tu pedido de '+p.cant+' '+p.prodNombre+' está programado para el '+fs+'. Saludos, Rius');const numF=num.startsWith('54')?num:'54'+(num.startsWith('0')?num.slice(1):num);window.open('https://wa.me/'+numF+'?text='+msg,'_blank');}
 function renderPedidos(){
   const lista=document.getElementById('pedidos-lista');if(!lista)return;

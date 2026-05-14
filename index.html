@@ -1579,7 +1579,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.22.6</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.22.7</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2271,7 +2271,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.22.6</div>
+      <div class="login-version">v1.22.7</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2286,7 +2286,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.22.6</div>
+      <div class="login-version">v1.22.7</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -3582,7 +3582,7 @@ function dosOpt(paradas,ori,dst){
 function renderRutaLista(paradas,origen,destino){
   const getIcon=n=>n.includes('20L')?'🛢️':n.includes('10L')?'💧':'🧊';
   let html='';
-  if(origen)html+=`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:.5px solid #f2f2f7;"><div style="background:#3B6D11;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">⬤</div><div style="font-size:13px;color:#3B6D11;font-weight:600;">Tu ubicación actual</div></div>`;
+  if(origen)html+=`<div onclick="ajustarInicio()" style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:.5px solid #f2f2f7;cursor:pointer;"><div style="background:#3B6D11;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">⬤</div><div style="font-size:13px;color:#3B6D11;font-weight:600;">Tu ubicación actual<span style="font-size:10px;font-weight:400;margin-left:6px;color:#8e8e93;">tocar para ajustar</span></div></div>`;
   paradas.forEach((p,i)=>{
     const distTxt=p.distancia!==undefined?`<span style="font-size:11px;color:#aeaeb2;"> · ${p.distancia<1?Math.round(p.distancia*1000)+'m':p.distancia.toFixed(1)+'km'}</span>`:'';
     const sinDirBadge=!p.coords?`<span style="font-size:10px;color:#B42318;background:#FDECEA;border-radius:4px;padding:1px 5px;margin-left:4px;">sin dirección</span>`:'';
@@ -3622,7 +3622,7 @@ async function armarRuta(){
   prog('Obteniendo punto de inicio...');
   let origen=null;
   if(rutaConfigInicio==='gps'){
-    try{origen=await new Promise(res=>navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),()=>res(null),{timeout:5000}));}catch(e){}
+    try{origen=await new Promise(res=>navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),()=>res(null),{enableHighAccuracy:true,maximumAge:0,timeout:10000}));}catch(e){}
   }else{
     const addr=document.getElementById('inicio-custom-input').value.trim();
     if(addr){prog('Geocodificando inicio...');origen=await geocodificarDir(addr);await new Promise(r=>setTimeout(r,1100));}
@@ -3630,7 +3630,7 @@ async function armarRuta(){
   // Punto de llegada
   let destino=null;
   if(rutaConfigFin==='inicio'){destino=origen;}
-  else if(rutaConfigFin==='gps'){try{destino=await new Promise(res=>navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),()=>res(null),{timeout:5000}));}catch(e){}}
+  else if(rutaConfigFin==='gps'){try{destino=await new Promise(res=>navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),()=>res(null),{enableHighAccuracy:true,maximumAge:0,timeout:10000}));}catch(e){}}
   else if(rutaConfigFin==='custom'){const addr=document.getElementById('fin-custom-input').value.trim();if(addr){prog('Geocodificando llegada...');destino=await geocodificarDir(addr);await new Promise(r=>setTimeout(r,1100));}}
   // Geocodificar paradas — usa coords guardadas si existen, si no geocodifica
   let geocodCount=0;
@@ -3690,7 +3690,7 @@ async function reGeocodificarRuta(){
   renderRutaLista(rutaParadas,rutaOrigen,rutaDestino);
 }
 
-let mapaPicker=null,mapaPickerMarker=null,mapaPickerIdx=null;
+let mapaPicker=null,mapaPickerMarker=null,mapaPickerIdx=null,mapaPickerModo='parada';
 
 function colocarMarkerPicker(lat,lng){
   const ll=L.latLng(lat,lng);
@@ -3706,7 +3706,34 @@ function colocarMarkerPicker(lat,lng){
   btn.disabled=false;btn.style.opacity='1';btn.textContent='Confirmar ubicación';
 }
 
+function ajustarInicio(){
+  mapaPickerModo='inicio';
+  mapaPickerIdx=null;
+  document.getElementById('mapa-picker-titulo').textContent='Tu punto de inicio';
+  const modal=document.getElementById('modal-mapa-picker');
+  modal.style.display='flex';
+  const centro=rutaOrigen||{lat:-35.0167,lng:-58.4167};
+  if(!mapaPicker){
+    mapaPicker=L.map('mapa-picker-map').setView([centro.lat,centro.lng],15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapaPicker);
+    mapaPicker.on('click',function(e){colocarMarkerPicker(e.latlng.lat,e.latlng.lng);document.getElementById('mapa-picker-hint').textContent=`${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;});
+  } else {
+    mapaPicker.setView([centro.lat,centro.lng],15);
+  }
+  if(mapaPickerMarker){mapaPicker.removeLayer(mapaPickerMarker);mapaPickerMarker=null;}
+  if(rutaOrigen){
+    colocarMarkerPicker(rutaOrigen.lat,rutaOrigen.lng);
+    document.getElementById('mapa-picker-hint').textContent='Mové el pin para corregir tu posición';
+  } else {
+    const btn=document.getElementById('mapa-picker-confirm');
+    btn.disabled=true;btn.style.opacity='.4';btn.textContent='Tocá donde estás';
+    document.getElementById('mapa-picker-hint').textContent='Marcá tu punto de partida en el mapa';
+  }
+  setTimeout(()=>mapaPicker.invalidateSize(),150);
+}
+
 function abrirMapaPicker(idx){
+  mapaPickerModo='parada';
   mapaPickerIdx=idx;
   const p=rutaParadas[idx];
   const guardado=CLIENTES_COORDS[p.cliente];
@@ -3742,13 +3769,33 @@ function cerrarMapaPicker(){
 }
 
 function confirmarMapaPicker(){
-  if(!mapaPickerMarker||mapaPickerIdx===null)return;
+  if(!mapaPickerMarker)return;
   const ll=mapaPickerMarker.getLatLng();
   const coords={lat:ll.lat,lng:ll.lng};
+  if(mapaPickerModo==='inicio'){
+    // Actualizar punto de inicio y re-optimizar
+    rutaOrigen=coords;
+    const conCoords=rutaParadas.filter(p=>p.coords);
+    const sinCoords=rutaParadas.filter(p=>!p.coords);
+    let ordenadas=conCoords;
+    if(conCoords.length>1){
+      ordenadas=vecinoMasCercano(rutaOrigen,conCoords);
+      dosOpt(ordenadas,rutaOrigen,rutaDestino);
+      recalcDistancias(ordenadas,rutaOrigen);
+    }
+    rutaParadas=[...ordenadas,...sinCoords];
+    const sinD=sinCoords.length;
+    const distTotal=ordenadas.reduce((s,p)=>s+(p.distancia||0),0);
+    document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · ${distTotal.toFixed(1)} km${sinD>0?' · '+sinD+' sin dirección':''}`;
+    renderRutaLista(rutaParadas,rutaOrigen,rutaDestino);
+    cerrarMapaPicker();
+    return;
+  }
+  // Modo parada
+  if(mapaPickerIdx===null)return;
   rutaParadas[mapaPickerIdx].coords=coords;
   rutaParadas[mapaPickerIdx].coordsGuardadas=true;
   guardarCoordsCliente(rutaParadas[mapaPickerIdx].cliente,coords);
-  // Re-optimizar con la nueva parada ubicada
   const conCoords=rutaParadas.filter(p=>p.coords);
   const sinCoords=rutaParadas.filter(p=>!p.coords);
   let ordenadas=conCoords;
@@ -3776,7 +3823,7 @@ function abrirRutaMaps(){
   navigator.geolocation.getCurrentPosition(
     pos=>window.open(buildUrl(pos.coords.latitude+','+pos.coords.longitude),'_blank'),
     ()=>window.open(buildUrl(''),'_blank'),
-    {timeout:3000}
+    {enableHighAccuracy:true,maximumAge:0,timeout:10000}
   );
 }
 function abrirWhatsappPedido(id){const p=pedidos.find(x=>x.id===id);if(!p)return;const num=p.telefono.replace(/[^0-9]/g,'');const d=parseFecha(p.fecha);const fs=d?d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}):p.fecha;const msg=encodeURIComponent('Hola '+p.cliente+'! Tu pedido de '+p.cant+' '+p.prodNombre+' está programado para el '+fs+'. Saludos, Rius');const numF=num.startsWith('54')?num:'54'+(num.startsWith('0')?num.slice(1):num);window.open('https://wa.me/'+numF+'?text='+msg,'_blank');}

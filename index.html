@@ -902,15 +902,33 @@ select {
 .devolucion-box {
   background: var(--surface-2);
   border-radius: var(--r-sm);
-  padding: 14px;
+  padding: 14px 16px;
   border: 1px solid var(--border-soft);
 }
 .devolucion-title {
   font-size: 12px; font-weight: 700; color: var(--text-secondary);
   margin-bottom: 12px;
-  text-transform: uppercase; letter-spacing: 0.06em;
   display: flex; align-items: center; gap: 6px;
 }
+.dev-expand-btn {
+  width: 100%;
+  margin-top: 8px;
+  background: transparent;
+  border: 1.5px dashed var(--border);
+  color: var(--text-muted);
+  border-radius: var(--r-sm);
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: border-color .12s, color .12s;
+}
+.dev-expand-btn:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+.dev-expand-btn svg { width: 12px; height: 12px; }
 
 .bidones-resumen {
   background: var(--brand-green-soft);
@@ -1690,9 +1708,13 @@ select {
         <div id="bid-disp-row" style="display:none;background:var(--surface-2);border-radius:var(--r-sm);padding:14px;border:1px solid var(--border-soft);">
           <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Bidones incluidos</label>
           <div style="display:flex;gap:20px;flex-wrap:wrap;">
-            <div style="display:flex;align-items:center;gap:10px;"><span class="qty-label">20L</span><button class="qty-btn" onclick="chgBidDisp('bd20',-1)" type="button">−</button><span class="qty-num" id="bd20">0</span><button class="qty-btn" onclick="chgBidDisp('bd20',1)" type="button">+</button></div>
-            <div style="display:flex;align-items:center;gap:10px;"><span class="qty-label">10L</span><button class="qty-btn" onclick="chgBidDisp('bd10',-1)" type="button">−</button><span class="qty-num" id="bd10">0</span><button class="qty-btn" onclick="chgBidDisp('bd10',1)" type="button">+</button></div>
+            <div id="bid-disp-20-row" style="display:flex;align-items:center;gap:10px;"><span class="qty-label">20L</span><button class="qty-btn" onclick="chgBidDisp('bd20',-1)" type="button">−</button><span class="qty-num" id="bd20">0</span><button class="qty-btn" onclick="chgBidDisp('bd20',1)" type="button">+</button></div>
+            <div id="bid-disp-10-row" style="display:none;align-items:center;gap:10px;"><span class="qty-label">10L</span><button class="qty-btn" onclick="chgBidDisp('bd10',-1)" type="button">−</button><span class="qty-num" id="bd10">0</span><button class="qty-btn" onclick="chgBidDisp('bd10',1)" type="button">+</button></div>
           </div>
+          <button type="button" class="dev-expand-btn" id="bid-disp-expand-btn" onclick="expandBidDisp10()" style="margin-top:10px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Agregar 10L
+          </button>
         </div>
         <div id="pago-directo-row" style="display:none;background:var(--brand-primary-soft);border-radius:var(--r-sm);padding:14px;border:1px solid var(--brand-primary);">
           <div style="font-size:13px;color:var(--brand-primary);font-weight:700;margin-bottom:8px;letter-spacing:-0.01em;">Pago sin entrega de bidones</div>
@@ -1714,8 +1736,12 @@ select {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
             Bidones vacíos devueltos
           </div>
-          <div class="qty-row"><span class="qty-label">Vacíos 20L</span><div class="qty-control"><button class="qty-btn" onclick="cambiarDev('dev20',-1)">−</button><span class="qty-num" id="dev20">0</span><button class="qty-btn" onclick="cambiarDev('dev20',1)">+</button></div></div>
-          <div class="qty-row"><span class="qty-label">Vacíos 10L</span><div class="qty-control"><button class="qty-btn" onclick="cambiarDev('dev10',-1)">−</button><span class="qty-num" id="dev10">0</span><button class="qty-btn" onclick="cambiarDev('dev10',1)">+</button></div></div>
+          <div class="qty-row" id="dev-row-20"><span class="qty-label">Vacíos 20L</span><div class="qty-control"><button class="qty-btn" onclick="cambiarDev('dev20',-1)">−</button><span class="qty-num" id="dev20">0</span><button class="qty-btn" onclick="cambiarDev('dev20',1)">+</button></div></div>
+          <div class="qty-row" id="dev-row-10"><span class="qty-label">Vacíos 10L</span><div class="qty-control"><button class="qty-btn" onclick="cambiarDev('dev10',-1)">−</button><span class="qty-num" id="dev10">0</span><button class="qty-btn" onclick="cambiarDev('dev10',1)">+</button></div></div>
+          <button type="button" class="dev-expand-btn" id="dev-expand-btn" onclick="expandDevExtra()" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span id="dev-expand-text">Agregar otro tamaño</span>
+          </button>
         </div>
         <div class="bidones-resumen" id="bidones-resumen"></div>
 
@@ -3004,7 +3030,8 @@ function selPago(tipo){
 function togglePagoDirecto(){
   const key=document.getElementById('prod-sel').value;const esPago=key==='pago|0|0';
   document.getElementById('pago-directo-row').style.display=esPago?'block':'none';
-  document.getElementById('cant-row').style.display=esPago?'none':'block';
+  const ocultarCant=esPago||key==='disp-fc|0|0'||key==='devdisp|0|0';
+  document.getElementById('cant-row').style.display=ocultarCant?'none':'block';
   document.getElementById('devolucion-box').style.display=esPago?'none':'block';
   document.getElementById('forma-pago-row').style.display=esPago?'none':'block';
   document.getElementById('btn-edit-monto').style.display=esPago?'none':'';
@@ -3015,13 +3042,39 @@ function togglePagoDirecto(){
 function actualizarInfoPagoDirecto(){const info=document.getElementById('pago-directo-info');if(!info)return;if(cliSel){const deuda=getDeuda(cliSel.nombre);info.textContent=deuda>0?`⚠ ${cliSel.nombre} debe ${fmt(deuda)}. Se descontará de la deuda.`:`${cliSel.nombre} no tiene deudas. Quedará como saldo a favor.`;}else info.textContent='Seleccioná un cliente.';}
 
 // ---- DEVOLUCIÓN ----
-function resetDev(){dev.dev20=0;dev.dev10=0;document.getElementById('dev20').textContent='0';document.getElementById('dev10').textContent='0';actualizarDev();}
+let devExpanded=false;
+function expandDevExtra(){devExpanded=true;actualizarDev();}
+function resetDev(){dev.dev20=0;dev.dev10=0;devExpanded=false;document.getElementById('dev20').textContent='0';document.getElementById('dev10').textContent='0';actualizarDev();}
 function cambiarDev(id,delta){dev[id]=Math.max(0,dev[id]+delta);document.getElementById(id).textContent=dev[id];actualizarDev();}
 function actualizarDev(){
   const key=document.getElementById('prod-sel').value;const cant=parseInt(document.getElementById('cant').value)||1;
   const box=document.getElementById('devolucion-box'),res=document.getElementById('bidones-resumen');
   if(['devdisp|0|0','pago|0|0'].includes(key)){box.style.display='none';res.classList.remove('visible');return;}
   box.style.display='block';
+  // Mostrar/ocultar filas de devolución según producto
+  const row20=document.getElementById('dev-row-20');
+  const row10=document.getElementById('dev-row-10');
+  const expandBtn=document.getElementById('dev-expand-btn');
+  const expandTxt=document.getElementById('dev-expand-text');
+  const is20=key==='5000|1000|20';
+  const is10=key==='4000|800|10';
+  const isDisp=key==='disp-fc|0|0';
+  // Si hay valores en el "otro" tamaño, ya está expandido
+  const anyDev20=dev.dev20>0;
+  const anyDev10=dev.dev10>0;
+  if(isDisp||devExpanded||(anyDev20&&anyDev10)){
+    row20.style.display='';row10.style.display='';expandBtn.style.display='none';
+  }else if(is20){
+    row20.style.display='';
+    if(anyDev10){row10.style.display='';expandBtn.style.display='none';}
+    else{row10.style.display='none';expandBtn.style.display='';expandTxt.textContent='Agregar 10L';}
+  }else if(is10){
+    row10.style.display='';
+    if(anyDev20){row20.style.display='';expandBtn.style.display='none';}
+    else{row20.style.display='none';expandBtn.style.display='';expandTxt.textContent='Agregar 20L';}
+  }else{
+    row20.style.display='';row10.style.display='';expandBtn.style.display='none';
+  }
   const esDisp=key==='disp-fc|0|0';const partsDesc=esDisp?[]:[`Lleva: ${cant} bid. ${key.includes('|20')?'20':'10'}L`];
   if(dev.dev20>0)partsDesc.push(`Dev: ${dev.dev20} vacíos 20L`);if(dev.dev10>0)partsDesc.push(`${dev.dev10} vacíos 10L`);
   if(partsDesc.length>0){res.textContent=partsDesc.join(' · ');res.classList.add('visible');}else res.classList.remove('visible');
@@ -3030,7 +3083,36 @@ function actualizarDev(){
 // ---- DISPENSER ----
 const bidDisp={bd20:0,bd10:0};
 function chgBidDisp(id,delta){bidDisp[id]=Math.max(0,bidDisp[id]+delta);document.getElementById(id).textContent=bidDisp[id];calcTotal();}
-function toggleBidDisp(){const key=document.getElementById('prod-sel').value;const row=document.getElementById('bid-disp-row');if(row)row.style.display=key==='disp-fc|0|0'?'block':'none';if(key!=='disp-fc|0|0'){bidDisp.bd20=0;bidDisp.bd10=0;}const cantRow=document.getElementById('cant-row');if(cantRow)cantRow.style.display=(key==='disp-fc|0|0'||key==='devdisp|0|0')?'none':'block';}
+function expandBidDisp10(){
+  const row10=document.getElementById('bid-disp-10-row');
+  const btn=document.getElementById('bid-disp-expand-btn');
+  if(row10)row10.style.display='flex';
+  if(btn)btn.style.display='none';
+}
+function resetBidDisp(){
+  bidDisp.bd20=0;bidDisp.bd10=0;
+  const d20=document.getElementById('bd20'),d10=document.getElementById('bd10');
+  if(d20)d20.textContent='0';if(d10)d10.textContent='0';
+  const row10=document.getElementById('bid-disp-10-row');if(row10)row10.style.display='none';
+  const btn=document.getElementById('bid-disp-expand-btn');if(btn)btn.style.display='';
+}
+function toggleBidDisp(){
+  const key=document.getElementById('prod-sel').value;
+  const row=document.getElementById('bid-disp-row');
+  if(row)row.style.display=key==='disp-fc|0|0'?'block':'none';
+  // Si cambiamos a dispenser, resetear estado de expand (mostrar solo 20L)
+  if(key==='disp-fc|0|0'){
+    const row10=document.getElementById('bid-disp-10-row');
+    const btn=document.getElementById('bid-disp-expand-btn');
+    // Si hay bidones 10L cargados, mostrar la fila; sino mantener oculta
+    if(bidDisp.bd10>0){if(row10)row10.style.display='flex';if(btn)btn.style.display='none';}
+    else{if(row10)row10.style.display='none';if(btn)btn.style.display='';}
+  }
+  if(key!=='disp-fc|0|0'){bidDisp.bd20=0;bidDisp.bd10=0;const d20=document.getElementById('bd20'),d10=document.getElementById('bd10');if(d20)d20.textContent='0';if(d10)d10.textContent='0';}
+  // Ocultar la fila "Cantidad" cuando es dispenser o devolución de dispenser (no aplica)
+  const cantRow=document.getElementById('cant-row');
+  if(cantRow)cantRow.style.display=(key==='disp-fc|0|0'||key==='devdisp|0|0')?'none':'block';
+}
 
 // ---- EDITAR MONTO ----
 let montoManualActivo=false;

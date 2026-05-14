@@ -752,8 +752,7 @@ select {
 /* Cliente seleccionado */
 .cli-badge {
   background: var(--brand-green-soft);
-  border-radius: var(--r-sm);
-  padding: 12px 14px;
+  border-radius: var(--r-sm);  padding: 12px 14px;
   font-size: 14px;
   color: var(--brand-green);
   display: none;
@@ -767,6 +766,51 @@ select {
 .cli-badge button { background: none; border: none; cursor: pointer; font-size: 18px; color: var(--brand-green); padding: 0; opacity: 0.7; line-height: 1; }
 .cli-badge button:hover { opacity: 1; }
 .cliente-bidones-info { font-size: 12px; color: var(--brand-primary); margin-top: 4px; font-weight: 500; }
+
+/* Cuando un cliente está seleccionado, ocultar buscador y label "Cliente" (queda solo el badge) */
+.venta-form > div:has(> .cli-badge.on) > .cw,
+.venta-form > div:has(> .cli-badge.on) > label { display: none; }
+
+/* Ocultar "Ganancia estimada" en Venta */
+#venta .ganancia-row { display: none; }
+
+/* Nota como botón colapsable */
+.nota-trigger {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1.5px dashed var(--border);
+  color: var(--text-muted);
+  border-radius: var(--r-sm);
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: border-color .12s, color .12s, background .12s;
+}
+.nota-trigger:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+.nota-trigger svg { width: 14px; height: 14px; }
+.nota-trigger.filled {
+  background: var(--brand-primary-soft);
+  border: 1.5px solid var(--brand-primary);
+  border-style: solid;
+  color: var(--brand-primary);
+}
+.nota-content { position: relative; }
+.nota-content .nota-clear {
+  position: absolute;
+  right: 8px; top: 50%; transform: translateY(-50%);
+  background: none; border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 6px;
+  cursor: pointer;
+}
+.nota-content input { padding-right: 36px !important; }
 
 /* Qty controls */
 .qty-ctrl { display: flex !important; flex-direction: row !important; align-items: center; gap: 14px; }
@@ -1916,9 +1960,15 @@ select {
             <button class="pago-btn" id="ped-pago-transferencia" onclick="selPedPago('transferencia')">Transfer.</button>
           </div>
         </div>
-        <div>
-          <label>Nota (opcional)</label>
-          <input type="text" id="ped-nota" placeholder="Ej: entregar a la mañana" />
+        <div id="ped-nota-wrap">
+          <button type="button" class="nota-trigger" id="ped-nota-trigger" onclick="toggleNotaPedido()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span id="ped-nota-trigger-text">Agregar nota</span>
+          </button>
+          <div class="nota-content" id="ped-nota-content" style="display:none;">
+            <input type="text" id="ped-nota" placeholder="Ej: entregar a la mañana" oninput="syncNotaPedidoTrigger()" />
+            <button type="button" class="nota-clear" onclick="cerrarNotaPedido()" aria-label="Cerrar nota">✕</button>
+          </div>
         </div>
         <button class="confirm-btn pedidos" onclick="registrarPedido()">Guardar pedido</button>
       </div>
@@ -2672,7 +2722,7 @@ function showScreen(id){
   if(id==='venta'){limpiarCliente();resetDev();resetEditMonto();pagoActual='efectivo';selPago('efectivo');document.getElementById('cant').value=1;document.getElementById('cant-display').textContent='1';toggleBidDisp();togglePagoDirecto();calcTotal();resetFechaManual();}
   if(id==='stock')calcularStock();
   if(id==='gastos')filtrarGastos(gastosFiltroActual||'hoy');
-  if(id==='pedidos'){renderPedidos();document.getElementById('ped-fecha').value=new Date().toISOString().split('T')[0];limpiarClientePedido();document.getElementById('ped-cant').value=1;document.getElementById('ped-cant-display').textContent='1';pedPagoActual='pendiente';selPedPago('pendiente');}
+  if(id==='pedidos'){renderPedidos();document.getElementById('ped-fecha').value=new Date().toISOString().split('T')[0];limpiarClientePedido();document.getElementById('ped-cant').value=1;document.getElementById('ped-cant-display').textContent='1';pedPagoActual='pendiente';selPedPago('pendiente');resetNotaPedido();}
   if(id==='usuarios'){
     const rol=getRol();
     const addSec=document.getElementById('add-user-section');if(addSec)addSec.style.display=rol==='admin'?'block':'none';
@@ -3314,6 +3364,29 @@ function buscarClientePedido(){
 function selCliPedido(nombre){cliSelPedido=CLIENTES.find(c=>c.nombre===nombre)||{nombre,localidad:'',direccion:'',telefono:''};document.getElementById('ped-cli-inp').value='';document.getElementById('ped-ac-list').style.display='none';document.getElementById('ped-cli-badge').classList.add('on');document.getElementById('ped-badge-nombre').textContent=cliSelPedido.nombre;const esDisp=tieneDispenser(nombre);document.getElementById('ped-badge-dir').textContent=[cliSelPedido.localidad,cliSelPedido.direccion].filter(Boolean).join(' · ')+(esDisp?' · 🧊':'');calcMontoEstimadoPedido();}
 function limpiarClientePedido(){cliSelPedido=null;document.getElementById('ped-cli-inp').value='';document.getElementById('ped-ac-list').style.display='none';document.getElementById('ped-cli-badge').classList.remove('on');document.getElementById('ped-monto-row').style.display='none';}
 function chgPedCant(delta){const inp=document.getElementById('ped-cant'),disp=document.getElementById('ped-cant-display');let v=Math.max(1,(parseInt(inp.value)||1)+delta);inp.value=v;disp.textContent=v;calcMontoEstimadoPedido();}
+
+// ---- NOTA pedido (colapsable) ----
+function toggleNotaPedido(){
+  const c=document.getElementById('ped-nota-content');const t=document.getElementById('ped-nota-trigger');
+  if(c.style.display==='none'||!c.style.display){c.style.display='block';t.style.display='none';setTimeout(()=>document.getElementById('ped-nota')?.focus(),0);}
+  else cerrarNotaPedido();
+}
+function cerrarNotaPedido(limpiar){
+  const c=document.getElementById('ped-nota-content');const t=document.getElementById('ped-nota-trigger');const i=document.getElementById('ped-nota');const txt=document.getElementById('ped-nota-trigger-text');
+  if(limpiar===true)i.value='';
+  c.style.display='none';t.style.display='';
+  syncNotaPedidoTrigger();
+}
+function syncNotaPedidoTrigger(){
+  const i=document.getElementById('ped-nota');const t=document.getElementById('ped-nota-trigger');const txt=document.getElementById('ped-nota-trigger-text');
+  const v=(i?.value||'').trim();
+  if(v){t.classList.add('filled');txt.textContent='Nota: '+(v.length>22?v.slice(0,22)+'…':v);}
+  else{t.classList.remove('filled');txt.textContent='Agregar nota';}
+}
+function resetNotaPedido(){
+  const i=document.getElementById('ped-nota');if(i)i.value='';
+  cerrarNotaPedido(true);
+}
 function calcMontoEstimadoPedido(){
   const row=document.getElementById('ped-monto-row');const val=document.getElementById('ped-monto-val');const sub=document.getElementById('ped-monto-sub');const prodEl=document.getElementById('ped-prod');const cantEl=document.getElementById('ped-cant');
   if(!row||!val||!sub||!prodEl||!cantEl)return;if(!cliSelPedido){row.style.display='none';return;}
@@ -3348,7 +3421,7 @@ function registrarPedido(){
     }
   }
   pedidos.push({id:Date.now(),cliente:cliSelPedido.nombre,telefono:cliSelPedido.telefono||'',prodKey,prodNombre,cant,fecha,nota,hora:new Date().toISOString(),usuario:usuarioActual||'',pago:pedPagoActual});
-  limpiarClientePedido();document.getElementById('ped-cant').value=1;document.getElementById('ped-cant-display').textContent='1';document.getElementById('ped-nota').value='';pedPagoActual='pendiente';selPedPago('pendiente');
+  limpiarClientePedido();document.getElementById('ped-cant').value=1;document.getElementById('ped-cant-display').textContent='1';document.getElementById('ped-nota').value='';resetNotaPedido();pedPagoActual='pendiente';selPedPago('pendiente');
   guardarEstado();sincAuto();renderPedidos();
 }
 function abrirModalEditarPedido(id){const p=pedidos.find(x=>x.id===id);if(!p)return;pedidoEditandoId=id;document.getElementById('modal-ped-cliente').textContent='👤 '+p.cliente;document.getElementById('modal-ped-prod').value=p.prodKey;document.getElementById('modal-ped-cant').value=p.cant;document.getElementById('modal-ped-cant-display').textContent=p.cant;document.getElementById('modal-ped-fecha').value=p.fecha;document.getElementById('modal-ped-nota').value=p.nota||'';modalPedPagoActual=p.pago||'pendiente';selModalPedPago(modalPedPagoActual);document.getElementById('modal-editar-pedido').classList.add('visible');}

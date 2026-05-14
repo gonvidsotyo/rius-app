@@ -204,15 +204,21 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; c
   box-shadow: 0 2px 8px rgba(14, 58, 110, 0.25);
   flex-shrink: 0;
 }
-.brand-text { display: flex; flex-direction: column; min-width: 0; }
+.brand-text { display: flex; flex-direction: column; min-width: 0; flex: 1; overflow: hidden; }
 .brand-title {
   font-size: 17px; font-weight: 700; color: var(--text);
   letter-spacing: -0.02em; line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .brand-sub {
   font-size: 11px; color: var(--text-muted); font-weight: 500;
   letter-spacing: 0.01em; margin-top: 1px;
   text-transform: lowercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .topbar-actions { display: flex; align-items: center; gap: 4px; }
 .icon-btn {
@@ -2457,6 +2463,32 @@ select {
   }
   .page-title { font-size: 17px; margin: 0 4px 8px; }
 }
+
+/* En mobile angosto: apretar topbar + ocultar texto del sync-pill (dejar el dot) */
+@media (max-width: 420px) {
+  .topbar { padding: 8px 10px; }
+  .brand-mark { width: 32px; height: 32px; }
+  .brand-title { font-size: 15px; }
+  .version-tag { display: none; }
+  .topbar-actions { gap: 2px; }
+  .icon-btn { width: 32px; height: 32px; }
+  .sync-pill {
+    font-size: 0;
+    padding: 0;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    justify-content: center;
+  }
+  .sync-pill::before { width: 8px; height: 8px; margin: 0; }
+}
+
+/* En pantallas muy chicas o angostas: ocultar el page-title "Pedidos" porque ya está en bottom-nav */
+@media (max-height: 760px) {
+  #pedidos > .page-title,
+  #venta > .page-title { display: none; }
+  #pedidos { padding-top: 10px; }
+  #venta { padding-top: 10px; }
+}
 </style>
 
 
@@ -2638,8 +2670,17 @@ function showScreen(id){
 
 // ---- FECHA ----
 const dias=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'],meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const diasC=['dom','lun','mar','mié','jue','vie','sáb'],mesesC=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const hoyD=new Date();
-document.getElementById('topbar-fecha').textContent=`${dias[hoyD.getDay()]} ${hoyD.getDate()} de ${meses[hoyD.getMonth()]} · ${hoyD.getFullYear()}`;
+function setTopbarFecha(){
+  const el=document.getElementById('topbar-fecha');if(!el)return;
+  const compacto=window.innerWidth<420;
+  el.textContent=compacto
+    ? `${diasC[hoyD.getDay()]} ${hoyD.getDate()} ${mesesC[hoyD.getMonth()]} · ${hoyD.getFullYear()}`
+    : `${dias[hoyD.getDay()]} ${hoyD.getDate()} de ${meses[hoyD.getMonth()]} · ${hoyD.getFullYear()}`;
+}
+setTopbarFecha();
+window.addEventListener('resize',setTopbarFecha);
 
 // ---- AUTOCOMPLETE VENTA ----
 function buscarCliente(){

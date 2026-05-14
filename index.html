@@ -1579,7 +1579,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.22.2</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.22.3</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2270,7 +2270,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.22.2</div>
+      <div class="login-version">v1.22.3</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2285,7 +2285,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.22.2</div>
+      <div class="login-version">v1.22.3</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -3518,7 +3518,14 @@ function abrirMaps(dirEncoded){window.open('https://www.google.com/maps/search/?
 let rutaParadas=[],rutaOrigen=null,rutaDestino=null;
 let rutaConfigInicio='gps',rutaConfigFin='ninguno';
 let CLIENTES_COORDS=JSON.parse(localStorage.getItem('clientesCoords')||'{}');
-function guardarCoordsCliente(nombre,coords){CLIENTES_COORDS[nombre]={lat:coords.lat,lng:coords.lng};localStorage.setItem('clientesCoords',JSON.stringify(CLIENTES_COORDS));}
+function guardarCoordsCliente(nombre,coords){
+  CLIENTES_COORDS[nombre]={lat:coords.lat,lng:coords.lng,fromSheets:false};
+  localStorage.setItem('clientesCoords',JSON.stringify(CLIENTES_COORDS));
+  const url=localStorage.getItem('scriptUrl')||'';
+  if(url&&url.startsWith('https://script.google.com')){
+    fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({tipo:'guardar-coords-cliente',nombre,lat:coords.lat,lng:coords.lng})}).catch(()=>{});
+  }
+}
 function limpiarCoordsCliente(nombre){delete CLIENTES_COORDS[nombre];localStorage.setItem('clientesCoords',JSON.stringify(CLIENTES_COORDS));}
 
 async function geocodificarDir(dir, loc){
@@ -3841,7 +3848,7 @@ function guardarUrl(){const url=document.getElementById('script-url').value.trim
 async function cargarDesdeSheets(url){
   try{
     const res=await fetch(url+'?accion=leer');const json=await res.json();if(!json.ok||!json.datos)return false;const d=json.datos;
-    if(d.clientes&&d.clientes.length){CLIENTES.length=0;CLIENTES_BASE_NOMBRES.clear();Object.keys(bCasa).forEach(k=>{delete bCasa[k];});d.clientes.forEach(c=>{if(!c.nombre)return;CLIENTES.push({nombre:c.nombre,localidad:c.localidad||'',direccion:c.direccion||'',telefono:c.telefono||''});CLIENTES_BASE_NOMBRES.add(c.nombre);bCasa[c.nombre]={b20:Number(c.b20)||0,b10:Number(c.b10)||0};if(!deudas[c.nombre])deudas[c.nombre]=0;});ordenarClientes();}
+    if(d.clientes&&d.clientes.length){CLIENTES.length=0;CLIENTES_BASE_NOMBRES.clear();Object.keys(bCasa).forEach(k=>{delete bCasa[k];});d.clientes.forEach(c=>{if(!c.nombre)return;CLIENTES.push({nombre:c.nombre,localidad:c.localidad||'',direccion:c.direccion||'',telefono:c.telefono||''});CLIENTES_BASE_NOMBRES.add(c.nombre);bCasa[c.nombre]={b20:Number(c.b20)||0,b10:Number(c.b10)||0};if(!deudas[c.nombre])deudas[c.nombre]=0;if(c.lat&&c.lng)CLIENTES_COORDS[c.nombre]={lat:c.lat,lng:c.lng,fromSheets:true};});localStorage.setItem('clientesCoords',JSON.stringify(CLIENTES_COORDS));ordenarClientes();}
     if(d.dispenserActivos){CLIENTES_DISPENSER.clear();d.dispenserActivos.forEach(n=>CLIENTES_DISPENSER.add(n));}
     if(d.dispenserReservados){CLIENTES_DISPENSER_RESERVADO.clear();d.dispenserReservados.forEach(n=>CLIENTES_DISPENSER_RESERVADO.add(n));}
     if(d.dispenserSinAbono){CLIENTES_DISPENSER_SIN_ABONO.clear();d.dispenserSinAbono.forEach(n=>CLIENTES_DISPENSER_SIN_ABONO.add(n));}
@@ -3924,7 +3931,7 @@ window.addEventListener('load',async()=>{
           }
           if(d.pedidos&&d.pedidos.length)pedidos=d.pedidos;
           if(d.gastos&&d.gastos.length)gastos=d.gastos.map(g=>({...g,hora:new Date(g.hora),bid20:g.bid20||0,bid10:g.bid10||0}));
-          if(d.clientes&&d.clientes.length){CLIENTES.length=0;CLIENTES_BASE_NOMBRES.clear();Object.keys(bCasa).forEach(k=>{delete bCasa[k];});d.clientes.forEach(c=>{if(!c.nombre)return;CLIENTES.push({nombre:c.nombre,localidad:c.localidad||'',direccion:c.direccion||'',telefono:c.telefono||''});CLIENTES_BASE_NOMBRES.add(c.nombre);bCasa[c.nombre]={b20:Number(c.b20)||0,b10:Number(c.b10)||0};if(!deudas[c.nombre])deudas[c.nombre]=0;});ordenarClientes();}
+          if(d.clientes&&d.clientes.length){CLIENTES.length=0;CLIENTES_BASE_NOMBRES.clear();Object.keys(bCasa).forEach(k=>{delete bCasa[k];});d.clientes.forEach(c=>{if(!c.nombre)return;CLIENTES.push({nombre:c.nombre,localidad:c.localidad||'',direccion:c.direccion||'',telefono:c.telefono||''});CLIENTES_BASE_NOMBRES.add(c.nombre);bCasa[c.nombre]={b20:Number(c.b20)||0,b10:Number(c.b10)||0};if(!deudas[c.nombre])deudas[c.nombre]=0;if(c.lat&&c.lng)CLIENTES_COORDS[c.nombre]={lat:c.lat,lng:c.lng,fromSheets:true};});localStorage.setItem('clientesCoords',JSON.stringify(CLIENTES_COORDS));ordenarClientes();}
           if(d.deudas&&Object.keys(d.deudas).length)Object.assign(deudas,d.deudas);
           if(d.stockInicial)Object.assign(stockInicial,d.stockInicial);
           if(d.localidades&&d.localidades.length){const seen=new Set();localidades=d.localidades.filter(l=>{const k=l.toLowerCase().trim();if(seen.has(k))return false;seen.add(k);return true;}).sort((a,b)=>a.localeCompare(b,'es'));poblarSelectLocalidades();}

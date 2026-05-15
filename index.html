@@ -1579,7 +1579,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.25.2</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.25.3</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2314,7 +2314,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.25.2</div>
+      <div class="login-version">v1.25.3</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2329,7 +2329,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.25.2</div>
+      <div class="login-version">v1.25.3</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -3602,6 +3602,7 @@ let rutaParadas=[],rutaOrigen=null,rutaDestino=null;
 let rutasDia=[],rutaDiaIdx=0;
 let rutaAddingPedido=false;
 function _hoyStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function _fechaStr(ymd){if(!ymd)return'';const[y,m,d]=ymd.split('-');return`${d}/${m}/${y}`;}
 function _labelFechaRuta(f){const h=_hoyStr();if(f===h)return'Hoy';const m=new Date();m.setDate(m.getDate()+1);const ms=m.getFullYear()+'-'+String(m.getMonth()+1).padStart(2,'0')+'-'+String(m.getDate()).padStart(2,'0');if(f===ms)return'Mañana';const[y,mo,d]=f.split('-');return`${d}/${mo}/${y}`;}
 function _actualizarDiaNave(){const nav=document.getElementById('ruta-dia-nav');if(!nav)return;if(rutasDia.length>1){nav.style.display='flex';document.getElementById('ruta-dia-label').textContent=rutasDia[rutaDiaIdx].label+` · ${rutaDiaIdx+1}/${rutasDia.length}`;document.getElementById('ruta-dia-prev').style.opacity=rutaDiaIdx===0?'0.3':'1';document.getElementById('ruta-dia-next').style.opacity=rutaDiaIdx===rutasDia.length-1?'0.3':'1';}else{nav.style.display='none';}}
 function mostrarRutaDia(idx){if(!rutasDia[idx])return;rutasDia[rutaDiaIdx]={...rutasDia[rutaDiaIdx],paradas:[...rutaParadas]};rutaDiaIdx=idx;const dia=rutasDia[idx];rutaParadas=[...dia.paradas];rutaOrigen=dia.origen;rutaDestino=dia.destino;_actualizarDiaNave();const sinD=rutaParadas.filter(p=>!p.coords).length;const distTotal=rutaParadas.filter(p=>p.coords).reduce((s,p)=>s+(p.distancia||0),0);document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · ${distTotal.toFixed(1)} km${sinD?' · '+sinD+' sin dirección':''}`;renderRutaLista(rutaParadas,rutaOrigen,rutaDestino);}
@@ -3786,8 +3787,8 @@ async function crearRutaDesdeSeleccion(){
   if(conCoords.length>1){const p0=origen||conCoords[0].coords;ordenadas=vecinoMasCercano(p0,conCoords);dosOpt(ordenadas,origen,null);recalcDistancias(ordenadas,origen);}
   rutaParadas=[...ordenadas,...sinCoords];rutaOrigen=origen;rutaDestino=null;
   const sinD=sinCoords.length,distTotal=ordenadas.reduce((s,p)=>s+(p.distancia||0),0);
-  const labelSel='Ruta del '+new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
-  _autoGuardarRuta(labelSel,rutaParadas,origen,null);
+  const hoyRuta=_hoyStr();
+  _autoGuardarRuta(_fechaStr(hoyRuta),rutaParadas,origen,null,hoyRuta);
   document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · ${distTotal.toFixed(1)} km${sinD?' · '+sinD+' sin dirección':''}`;
   renderRutaLista(rutaParadas,origen,null);
 }
@@ -3879,8 +3880,8 @@ async function armarRuta(){
   }
   rutaDiaIdx=0;
   rutaParadas=[...rutasDia[0].paradas];rutaOrigen=origen;rutaDestino=destino;
-  // Guardar cada día automáticamente en la sección Rutas
-  rutasDia.forEach(dia=>_autoGuardarRuta(dia.label,dia.paradas,dia.origen,dia.destino));
+  // Guardar cada día automáticamente en la sección Rutas con fecha real como nombre
+  rutasDia.forEach(dia=>_autoGuardarRuta(_fechaStr(dia.fecha),dia.paradas,dia.origen,dia.destino,dia.fecha));
   _actualizarDiaNave();
   const sinD=rutaParadas.filter(p=>!p.coords).length;
   const distTotal=rutaParadas.filter(p=>p.coords).reduce((s,p)=>s+(p.distancia||0),0);
@@ -3890,11 +3891,12 @@ async function armarRuta(){
 
 function cerrarRuta(){document.getElementById('modal-ruta').style.display='none';}
 
-function _autoGuardarRuta(nombre,paradas,origen,destino){
+function _autoGuardarRuta(nombre,paradas,origen,destino,fechaRuta){
   const rutas=JSON.parse(localStorage.getItem('rius_rutas')||'[]');
   const distTotal=paradas.filter(p=>p.coords).reduce((s,p)=>s+(p.distancia||0),0);
   const snap=paradas.map(p=>({cliente:p.cliente,dir:p.dir,loc:p.loc,dirCompleta:p.dirCompleta,prodNombre:p.prodNombre,cant:p.cant,nota:p.nota,coords:p.coords}));
-  rutas.unshift({id:Date.now(),nombre,fecha:new Date().toISOString(),paradas:snap,distTotal,origen:origen||null,destino:destino||null});
+  rutas.push({id:Date.now(),nombre,fecha:new Date().toISOString(),fechaRuta:fechaRuta||_hoyStr(),paradas:snap,distTotal,origen:origen||null,destino:destino||null});
+  rutas.sort((a,b)=>(a.fechaRuta||a.fecha).localeCompare(b.fechaRuta||b.fecha));
   localStorage.setItem('rius_rutas',JSON.stringify(rutas));
 }
 
@@ -4259,7 +4261,7 @@ function guardarRutaActual(){
 
 function renderRutas(){
   const lista=document.getElementById('rutas-lista');if(!lista)return;
-  const rutas=JSON.parse(localStorage.getItem('rius_rutas')||'[]');
+  const rutas=JSON.parse(localStorage.getItem('rius_rutas')||'[]').sort((a,b)=>(a.fechaRuta||a.fecha).localeCompare(b.fechaRuta||b.fecha));
   if(!rutas.length){lista.innerHTML='<div style="font-size:13px;color:#aeaeb2;padding:12px 0;">No hay rutas guardadas.</div>';return;}
   lista.innerHTML=rutas.map(r=>{
     const d=new Date(r.fecha);const ds=d.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'});

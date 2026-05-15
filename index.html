@@ -1579,7 +1579,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.23.4</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.23.5</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2297,7 +2297,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.23.4</div>
+      <div class="login-version">v1.23.5</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2312,7 +2312,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.23.4</div>
+      <div class="login-version">v1.23.5</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -2730,8 +2730,12 @@ function recalcularDesdeVentas(lista){
       if(!dispenserMes[cli]||dispenserMes[cli].mes!==mes)dispenserMes[cli]={mes,cant:0};
       dispenserMes[cli].cant+=(v.cant||0);
     }
-    // Marcar abono como pagado si hay venta de abono en el mes
+    // Marcar abono como pagado si hay venta de abono en el mes,
+    // o si la venta de entrega/alquiler de dispenser fue cobrada (el abono va incluido)
     if(v.nombre==='Abono dispenser'){
+      abonosPagados[cli]=mes;
+    }
+    if(v.nombre&&(v.nombre.includes('Entrega dispenser')||v.nombre.includes('Alquiler dispenser'))&&v.pago&&v.pago!=='nopago'){
       abonosPagados[cli]=mes;
     }
   });
@@ -3228,6 +3232,10 @@ function registrarVenta(){
   if(pagoActual==='nopago'){if(nomCli)deudas[nomCli]=(deudas[nomCli]||0)+total;}else if(pagarDeuda&&deudaAnt>0){deudas[nomCli]=0;}else if(saldoUsado>0){deudas[nomCli]=(deudas[nomCli]||0)+saldoUsado;}
   if(cliSel){const b=bCasa[cliSel.nombre];if(key==='5000|1000|20')b.b20=Math.max(0,b.b20+cant-dev.dev20);if(key==='4000|800|10')b.b10=Math.max(0,b.b10+cant-dev.dev10);if(key!=='5000|1000|20'&&dev.dev20>0)b.b20=Math.max(0,b.b20-dev.dev20);if(key!=='4000|800|10'&&dev.dev10>0)b.b10=Math.max(0,b.b10-dev.dev10);bCasaModificado.add(cliSel.nombre);}
   ventas.unshift({nombre:nombreVenta,cant,total:totalFinal,ganancia,hora:getFechaVenta(),cliente:nomCli,usuario:usuarioActual||'',dev20:dev.dev20,dev10:dev.dev10,pago:pagoActual,deudaSaldada:pagarDeuda?deudaAnt:0,nuevaDeuda:pagoActual==='nopago'?total:0,saldoUsado});
+  // Si la venta incluye entrega/alquiler de dispenser y se cobró, marcar abono como pagado
+  if(key==='disp-fc|0|0'&&nomCli&&pagoActual!=='nopago'){
+    abonosPagados[nomCli]=getMesAbono();
+  }
   // Registrar abono dispenser como venta separada
   if(cobrarAbono&&nomCli){
     abonosPagados[nomCli]=getMesAbono();

@@ -1579,7 +1579,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.23.5</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.24.0</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2210,6 +2210,7 @@ select {
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
       <button onclick="abrirAgregarParada()" style="background:var(--brand-primary);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;">+</button>
+      <button onclick="abrirOpcionesRuta()" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:50%;width:30px;height:30px;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;">⚙️</button>
       <button onclick="cerrarRuta()" style="background:none;border:none;font-size:22px;color:var(--text-muted);padding:0;">✕</button>
     </div>
   </div>
@@ -2218,6 +2219,17 @@ select {
     <button onclick="guardarRutaActual()" style="background:var(--surface);color:var(--text-secondary);border:1.5px solid var(--border-soft);border-radius:12px;padding:13px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">💾 Guardar</button>
     <button onclick="reGeocodificarRuta()" style="background:var(--surface);color:var(--text-secondary);border:1.5px solid var(--border-soft);border-radius:12px;padding:13px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">🔄 Re-geo</button>
     <button onclick="abrirRutaMaps()" class="confirm-btn" style="flex:1;">📍 Abrir en Maps</button>
+  </div>
+</div>
+
+<!-- ================= MODAL OPCIONES RUTA ================= -->
+<div class="modal-overlay" id="modal-opciones-ruta" style="align-items:flex-end;padding:0;">
+  <div class="modal-ped-box" style="padding:0;">
+    <div style="padding:16px 18px 12px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:16px;font-weight:700;color:var(--text);">Opciones de ruta</div>
+      <button onclick="cerrarOpcionesRuta()" style="background:none;border:none;font-size:22px;color:var(--text-muted);padding:0;">✕</button>
+    </div>
+    <div id="opciones-ruta-contenido" style="padding:16px 18px calc(24px + var(--safe-bot));display:flex;flex-direction:column;gap:10px;"></div>
   </div>
 </div>
 
@@ -2297,7 +2309,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.23.5</div>
+      <div class="login-version">v1.24.0</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2312,7 +2324,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.23.5</div>
+      <div class="login-version">v1.24.0</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -3830,6 +3842,98 @@ async function armarRuta(){
 }
 
 function cerrarRuta(){document.getElementById('modal-ruta').style.display='none';}
+
+// ---- OPCIONES RUTA ----
+function abrirOpcionesRuta(){
+  _renderOpcionesRuta();
+  document.getElementById('modal-opciones-ruta').classList.add('visible');
+}
+function cerrarOpcionesRuta(){document.getElementById('modal-opciones-ruta').classList.remove('visible');}
+
+function _renderOpcionesRuta(){
+  document.getElementById('opciones-ruta-contenido').innerHTML=`
+    <button onclick="invertirRuta()" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;display:flex;align-items:center;gap:12px;">
+      <span style="font-size:22px;">↕️</span><div><div>Invertir sentido</div><div style="font-size:12px;font-weight:400;color:var(--text-muted);margin-top:2px;">Recorre la ruta en orden inverso</div></div>
+    </button>
+    <button onclick="_abrirCambiarPunto('inicio')" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;display:flex;align-items:center;gap:12px;">
+      <span style="font-size:22px;">🚀</span><div><div>Cambiar punto de inicio</div><div style="font-size:12px;font-weight:400;color:var(--text-muted);margin-top:2px;">${rutaOrigen?'GPS activo':'Sin punto de inicio'}</div></div>
+    </button>
+    <button onclick="_abrirCambiarPunto('final')" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;display:flex;align-items:center;gap:12px;">
+      <span style="font-size:22px;">🏁</span><div><div>Cambiar punto de llegada</div><div style="font-size:12px;font-weight:400;color:var(--text-muted);margin-top:2px;">${rutaDestino?'Destino fijo':'Sin punto de llegada'}</div></div>
+    </button>`;
+}
+
+function invertirRuta(){
+  if(!rutaParadas.length)return;
+  rutaParadas.reverse();
+  recalcDistancias(rutaParadas,rutaOrigen);
+  const distTotal=rutaParadas.reduce((s,p)=>s+(p.distancia||0),0);
+  const sinD=rutaParadas.filter(p=>!p.coords).length;
+  document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · ${distTotal.toFixed(1)} km${sinD?' · '+sinD+' sin dirección':''}`;
+  renderRutaLista(rutaParadas,rutaOrigen,rutaDestino);
+  cerrarOpcionesRuta();
+}
+
+function _abrirCambiarPunto(tipo){
+  const esFinal=tipo==='final';
+  const titulo=esFinal?'Cambiar punto de llegada':'Cambiar punto de inicio';
+  const inputId='_cp_input_'+tipo;
+  document.getElementById('opciones-ruta-contenido').innerHTML=`
+    <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;">${titulo}</div>
+    <button onclick="_aplicarPuntoGPS('${tipo}')" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:14px 16px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;display:flex;align-items:center;gap:10px;">
+      <span>📍</span> Usar mi ubicación (GPS)
+    </button>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <input id="${inputId}" type="text" placeholder="Escribir dirección..." style="width:100%;padding:12px 14px;border:1.5px solid var(--border-soft);border-radius:10px;font-size:14px;background:var(--surface-2);color:var(--text);box-sizing:border-box;" />
+      <button onclick="_aplicarPuntoDireccion('${tipo}','${inputId}')" class="confirm-btn">Aplicar dirección →</button>
+    </div>
+    ${esFinal?`<button onclick="_aplicarPuntoNinguno()" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:14px 16px;font-size:14px;font-weight:500;color:var(--text-muted);cursor:pointer;">Sin punto de llegada</button>`:''}
+    <button onclick="_renderOpcionesRuta()" style="background:none;border:none;color:var(--text-muted);font-size:13px;padding:6px;cursor:pointer;">← Volver</button>`;
+  setTimeout(()=>document.getElementById(inputId)?.focus(),100);
+}
+
+window._aplicarPuntoGPS=async function(tipo){
+  const el=document.getElementById('opciones-ruta-contenido');
+  el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:14px;">📍 Obteniendo ubicación...</div>';
+  let coords=null;
+  try{coords=await new Promise(res=>navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),()=>res(null),{enableHighAccuracy:true,maximumAge:0,timeout:10000}));}catch(e){}
+  if(!coords){el.innerHTML='<div style="text-align:center;padding:16px;color:#B42318;font-size:13px;">No se pudo obtener la ubicación. Intentá de nuevo.</div>';setTimeout(()=>_renderOpcionesRuta(),2000);return;}
+  if(tipo==='inicio'){rutaOrigen=coords;}else{rutaDestino=coords;}
+  _recalcYCerrar();
+};
+
+window._aplicarPuntoDireccion=async function(tipo,inputId){
+  const addr=document.getElementById(inputId)?.value.trim();
+  if(!addr)return;
+  const el=document.getElementById('opciones-ruta-contenido');
+  el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:14px;">🔍 Buscando dirección...</div>';
+  const coords=await geocodificarDir(addr,'');
+  if(!coords){el.innerHTML='<div style="text-align:center;padding:16px;color:#B42318;font-size:13px;">No se encontró la dirección. Intentá con otra.</div>';setTimeout(()=>_abrirCambiarPunto(tipo),2000);return;}
+  if(tipo==='inicio'){rutaOrigen=coords;}else{rutaDestino=coords;}
+  _recalcYCerrar();
+};
+
+window._aplicarPuntoNinguno=function(){
+  rutaDestino=null;
+  _recalcYCerrar();
+};
+
+function _recalcYCerrar(){
+  const conCoords=rutaParadas.filter(p=>p.coords);
+  const sinCoords=rutaParadas.filter(p=>!p.coords);
+  if(conCoords.length>1){
+    const p0=rutaOrigen||conCoords[0].coords;
+    const ordenadas=vecinoMasCercano(p0,[...conCoords]);
+    dosOpt(ordenadas,rutaOrigen,rutaDestino);
+    recalcDistancias(ordenadas,rutaOrigen);
+    rutaParadas=[...ordenadas,...sinCoords];
+  }
+  const distTotal=rutaParadas.reduce((s,p)=>s+(p.distancia||0),0);
+  const sinD=sinCoords.length;
+  document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · ${distTotal.toFixed(1)} km${sinD?' · '+sinD+' sin dirección':''}`;
+  renderRutaLista(rutaParadas,rutaOrigen,rutaDestino);
+  cerrarOpcionesRuta();
+}
 
 async function reGeocodificarRuta(){
   const sub=document.getElementById('ruta-subtitulo');

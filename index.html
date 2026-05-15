@@ -1579,7 +1579,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.23.0</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.23.1</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2229,7 +2229,7 @@ select {
       <button onclick="cerrarAgregarParada()" style="background:none;border:none;font-size:22px;color:var(--text-muted);padding:0;">✕</button>
     </div>
     <div id="agregar-parada-contenido" style="padding:16px 18px calc(20px + var(--safe-bot));display:flex;flex-direction:column;gap:10px;">
-      <button onclick="agregarDesdeGedidos()" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;">📋 Desde pedidos pendientes</button>
+      <button onclick="agregarDesdeGedidos()" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;">📋 Crear nuevo pedido</button>
       <button onclick="agregarSoloDireccion()" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;">📍 Solo dirección de cliente</button>
     </div>
   </div>
@@ -2297,7 +2297,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.23.0</div>
+      <div class="login-version">v1.23.1</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2312,7 +2312,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.23.0</div>
+      <div class="login-version">v1.23.1</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -3554,6 +3554,15 @@ function registrarPedido(){
   pedidos.push({id:Date.now(),cliente:cliSelPedido.nombre,telefono:cliSelPedido.telefono||'',prodKey,prodNombre,cant,fecha,nota,hora:new Date().toISOString(),usuario:usuarioActual||'',pago:pedPagoActual});
   limpiarClientePedido();document.getElementById('ped-cant').value=1;document.getElementById('ped-cant-display').textContent='1';document.getElementById('ped-nota').value='';resetNotaPedido();pedPagoActual='pendiente';selPedPago('pendiente');
   guardarEstado();sincAuto();renderPedidos();
+  if(rutaAddingPedido){
+    rutaAddingPedido=false;
+    const ultimoPedido=pedidos[pedidos.length-1];
+    const cli=CLIENTES.find(c=>c.nombre===ultimoPedido.cliente);
+    const dir=cli?.direccion||'';const loc=cli?.localidad||'';
+    const parada={cliente:ultimoPedido.cliente,dir,loc,dirCompleta:[dir,loc].filter(Boolean).join(', '),prodNombre:ultimoPedido.prodNombre,cant:ultimoPedido.cant,nota:ultimoPedido.nota||'',coords:CLIENTES_COORDS[ultimoPedido.cliente]||null};
+    document.getElementById('modal-ruta').style.display='flex';
+    agregarParadaYOptimizar(parada);
+  }
 }
 function abrirModalEditarPedido(id){const p=pedidos.find(x=>x.id===id);if(!p)return;pedidoEditandoId=id;document.getElementById('modal-ped-cliente').textContent='👤 '+p.cliente;document.getElementById('modal-ped-prod').value=p.prodKey;document.getElementById('modal-ped-cant').value=p.cant;document.getElementById('modal-ped-cant-display').textContent=p.cant;document.getElementById('modal-ped-fecha').value=p.fecha;document.getElementById('modal-ped-nota').value=p.nota||'';modalPedPagoActual=p.pago||'pendiente';selModalPedPago(modalPedPagoActual);document.getElementById('modal-editar-pedido').classList.add('visible');}
 function cerrarModalEditarPedido(){document.getElementById('modal-editar-pedido').classList.remove('visible');pedidoEditandoId=null;}
@@ -3565,6 +3574,7 @@ function abrirMaps(dirEncoded){window.open('https://www.google.com/maps/search/?
 
 // ---- RUTA ----
 let rutaParadas=[],rutaOrigen=null,rutaDestino=null;
+let rutaAddingPedido=false;
 let CLIENTES_SELECCIONADOS_RUTA=new Set();
 let rutaConfigInicio='gps',rutaConfigFin='ninguno';
 let CLIENTES_COORDS=JSON.parse(localStorage.getItem('clientesCoords')||'{}');
@@ -3658,17 +3668,16 @@ function removerParada(idx){
 }
 
 function abrirAgregarParada(){
-  document.getElementById('agregar-parada-contenido').innerHTML=`<button onclick="agregarDesdeGedidos()" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;">📋 Desde pedidos pendientes</button><button onclick="agregarSoloDireccion()" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;">📍 Solo dirección de cliente</button>`;
+  document.getElementById('agregar-parada-contenido').innerHTML=`<button onclick="agregarDesdeGedidos()" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;">📋 Crear nuevo pedido</button><button onclick="agregarSoloDireccion()" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;">📍 Solo dirección de cliente</button>`;
   document.getElementById('modal-agregar-parada').classList.add('visible');
 }
 function cerrarAgregarParada(){document.getElementById('modal-agregar-parada').classList.remove('visible');}
 
 function agregarDesdeGedidos(){
-  const yaEnRuta=new Set(rutaParadas.map(p=>p.cliente));
-  const disponibles=pedidos.filter(p=>!yaEnRuta.has(p.cliente));
-  if(!disponibles.length){alert('No hay pedidos pendientes fuera de la ruta actual.');return;}
-  const rows=disponibles.map(p=>`<div onclick="seleccionarParadaDesdePedido('${encodeURIComponent(p.cliente)}')" style="padding:12px 14px;border-bottom:.5px solid var(--border-soft);cursor:pointer;"><div style="font-size:14px;font-weight:600;color:var(--text);">${p.cliente}</div><div style="font-size:12px;color:var(--text-muted);">${p.prodNombre} x${p.cant}</div></div>`).join('');
-  document.getElementById('agregar-parada-contenido').innerHTML=`<div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;font-weight:500;">Tocá un pedido para agregarlo a la ruta:</div><div style="background:var(--surface-2);border-radius:12px;overflow:hidden;">${rows}</div>`;
+  rutaAddingPedido=true;
+  cerrarAgregarParada();
+  document.getElementById('modal-ruta').style.display='none';
+  showScreen('pedidos');
 }
 
 window.seleccionarParadaDesdePedido=async function(encNombre){

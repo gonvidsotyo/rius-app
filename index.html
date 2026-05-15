@@ -1579,7 +1579,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.25.1</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.25.2</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2314,7 +2314,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.25.1</div>
+      <div class="login-version">v1.25.2</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2329,7 +2329,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.25.1</div>
+      <div class="login-version">v1.25.2</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -3786,6 +3786,8 @@ async function crearRutaDesdeSeleccion(){
   if(conCoords.length>1){const p0=origen||conCoords[0].coords;ordenadas=vecinoMasCercano(p0,conCoords);dosOpt(ordenadas,origen,null);recalcDistancias(ordenadas,origen);}
   rutaParadas=[...ordenadas,...sinCoords];rutaOrigen=origen;rutaDestino=null;
   const sinD=sinCoords.length,distTotal=ordenadas.reduce((s,p)=>s+(p.distancia||0),0);
+  const labelSel='Ruta del '+new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
+  _autoGuardarRuta(labelSel,rutaParadas,origen,null);
   document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · ${distTotal.toFixed(1)} km${sinD?' · '+sinD+' sin dirección':''}`;
   renderRutaLista(rutaParadas,origen,null);
 }
@@ -3877,6 +3879,8 @@ async function armarRuta(){
   }
   rutaDiaIdx=0;
   rutaParadas=[...rutasDia[0].paradas];rutaOrigen=origen;rutaDestino=destino;
+  // Guardar cada día automáticamente en la sección Rutas
+  rutasDia.forEach(dia=>_autoGuardarRuta(dia.label,dia.paradas,dia.origen,dia.destino));
   _actualizarDiaNave();
   const sinD=rutaParadas.filter(p=>!p.coords).length;
   const distTotal=rutaParadas.filter(p=>p.coords).reduce((s,p)=>s+(p.distancia||0),0);
@@ -3885,6 +3889,14 @@ async function armarRuta(){
 }
 
 function cerrarRuta(){document.getElementById('modal-ruta').style.display='none';}
+
+function _autoGuardarRuta(nombre,paradas,origen,destino){
+  const rutas=JSON.parse(localStorage.getItem('rius_rutas')||'[]');
+  const distTotal=paradas.filter(p=>p.coords).reduce((s,p)=>s+(p.distancia||0),0);
+  const snap=paradas.map(p=>({cliente:p.cliente,dir:p.dir,loc:p.loc,dirCompleta:p.dirCompleta,prodNombre:p.prodNombre,cant:p.cant,nota:p.nota,coords:p.coords}));
+  rutas.unshift({id:Date.now(),nombre,fecha:new Date().toISOString(),paradas:snap,distTotal,origen:origen||null,destino:destino||null});
+  localStorage.setItem('rius_rutas',JSON.stringify(rutas));
+}
 
 // ---- OPCIONES RUTA ----
 function abrirOpcionesRuta(){

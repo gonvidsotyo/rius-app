@@ -1579,7 +1579,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.25.0</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.25.1</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2314,7 +2314,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.25.0</div>
+      <div class="login-version">v1.25.1</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2329,7 +2329,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.25.0</div>
+      <div class="login-version">v1.25.1</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -3925,28 +3925,39 @@ function _abrirDividirRuta(){
     <button onclick="_renderOpcionesRuta()" style="background:none;border:none;color:var(--text-muted);font-size:13px;padding:6px;cursor:pointer;">← Volver</button>`;
 }
 
+function _ordinalReparto(n){return n===2?'2do':n===3?'3er':n===4?'4to':n+'to';}
+
 window._confirmarDivision=function(idx){
-  // idx = índice de última parada de la primera mitad (0-based)
   const primera=rutaParadas.slice(0,idx+1);
   const segunda=rutaParadas.slice(idx+1);
   if(!segunda.length){alert('La segunda parte no tiene paradas.');return;}
-  // Guardar segunda parte como ruta nueva
-  const fechaLabel=_labelFechaRuta(_hoyStr());
-  const label=`Ruta tarde · ${fechaLabel}`;
-  const id=Date.now();
-  const rutas=JSON.parse(localStorage.getItem('rius_rutas')||'[]');
-  rutas.unshift({id,label,fecha:new Date().toISOString(),paradas:segunda,origen:null,destino:rutaDestino});
-  localStorage.setItem('rius_rutas',JSON.stringify(rutas));
-  // Actualizar ruta actual con primera parte
+  // Calcular número de reparto basado en cuántas entradas ya hay para esta fecha
+  const fechaActual=rutasDia[rutaDiaIdx]?.fecha||_hoyStr();
+  const baseLabel=rutasDia[rutaDiaIdx]?.label?.split('·')[0].trim()||_labelFechaRuta(fechaActual);
+  const mismaFecha=rutasDia.filter(d=>d.fecha===fechaActual).length;
+  const ordinal=_ordinalReparto(mismaFecha+1);
+  const nuevoNombre=`${baseLabel} · ${ordinal} reparto`;
+  // Actualizar ruta actual (primera parte) en rutasDia
   rutaParadas=primera;
   recalcDistancias(rutaParadas,rutaOrigen);
-  const distTotal=rutaParadas.reduce((s,p)=>s+(p.distancia||0),0);
-  const sinD=rutaParadas.filter(p=>!p.coords).length;
-  document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · ${distTotal.toFixed(1)} km${sinD?' · '+sinD+' sin dirección':''}`;
+  rutasDia[rutaDiaIdx]={...rutasDia[rutaDiaIdx],paradas:[...primera]};
+  // Agregar segunda parte como nueva entrada en rutasDia
+  const nuevaEntrada={fecha:fechaActual,label:nuevoNombre,paradas:[...segunda],origen:null,destino:rutaDestino};
+  rutasDia.splice(rutaDiaIdx+1,0,nuevaEntrada);
+  // Guardar segunda parte en localStorage con nombre correcto
+  const id=Date.now();
+  const distTotal2=segunda.filter(p=>p.coords).reduce((s,p)=>s+(p.distancia||0),0);
+  const rutas=JSON.parse(localStorage.getItem('rius_rutas')||'[]');
+  rutas.unshift({id,nombre:nuevoNombre,fecha:new Date().toISOString(),paradas:segunda.map(p=>({cliente:p.cliente,dir:p.dir,loc:p.loc,dirCompleta:p.dirCompleta,prodNombre:p.prodNombre,cant:p.cant,nota:p.nota,coords:p.coords})),distTotal:distTotal2,origen:null});
+  localStorage.setItem('rius_rutas',JSON.stringify(rutas));
+  // Re-renderizar primera parte y actualizar nave
+  _actualizarDiaNave();
+  const sinD=primera.filter(p=>!p.coords).length;
+  const dist1=primera.filter(p=>p.coords).reduce((s,p)=>s+(p.distancia||0),0);
+  document.getElementById('ruta-subtitulo').textContent=`${primera.length} parada${primera.length!==1?'s':''} · ${dist1.toFixed(1)} km${sinD?' · '+sinD+' sin dirección':''}`;
   renderRutaLista(rutaParadas,rutaOrigen,rutaDestino);
   cerrarOpcionesRuta();
-  // Pequeño toast de confirmación
-  const t=document.createElement('div');t.textContent=`✂️ ${segunda.length} paradas guardadas como "${label}"`;t.style.cssText='position:fixed;bottom:calc(80px + var(--safe-bot));left:50%;transform:translateX(-50%);background:#1c1c1e;color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;white-space:nowrap;';document.body.appendChild(t);setTimeout(()=>t.remove(),3000);
+  const t=document.createElement('div');t.textContent=`✂️ "${nuevoNombre}" agregada · usá ▶ para verla`;t.style.cssText='position:fixed;bottom:calc(80px + var(--safe-bot));left:50%;transform:translateX(-50%);background:#1c1c1e;color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;white-space:nowrap;';document.body.appendChild(t);setTimeout(()=>t.remove(),3500);
 };
 
 function invertirRuta(){
@@ -4240,15 +4251,59 @@ function renderRutas(){
   if(!rutas.length){lista.innerHTML='<div style="font-size:13px;color:#aeaeb2;padding:12px 0;">No hay rutas guardadas.</div>';return;}
   lista.innerHTML=rutas.map(r=>{
     const d=new Date(r.fecha);const ds=d.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'});
-    return `<div style="background:#fff;border-radius:12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:14px 16px;">
-      <div style="font-size:15px;font-weight:700;color:var(--text);">${r.nombre}</div>
+    const nombre=r.nombre||r.label||'Ruta';
+    return `<div style="background:var(--surface-2);border-radius:12px;margin-bottom:10px;border:1px solid var(--border-soft);padding:14px 16px;">
+      <div style="font-size:15px;font-weight:700;color:var(--text);">${nombre}</div>
       <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">${ds} · ${r.paradas.length} parada${r.paradas.length!==1?'s':''} · ${(r.distTotal||0).toFixed(1)} km</div>
       <div style="display:flex;gap:8px;margin-top:12px;">
         <button onclick="repetirRuta(${r.id})" style="flex:1;background:var(--brand-primary);color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;">🔁 Repetir</button>
-        <button onclick="eliminarRutaGuardada(${r.id})" style="background:var(--surface-2);color:var(--brand-red);border:1.5px solid var(--border-soft);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;">🗑️</button>
+        <button onclick="editarRutaGuardada(${r.id})" style="background:var(--surface);color:var(--text);border:1.5px solid var(--border-soft);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;">✏️ Editar</button>
+        <button onclick="eliminarRutaGuardada(${r.id})" style="background:var(--surface);color:var(--brand-red);border:1.5px solid var(--border-soft);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;">🗑️</button>
       </div>
     </div>`;
   }).join('');
+}
+
+function editarRutaGuardada(id){
+  const rutas=JSON.parse(localStorage.getItem('rius_rutas')||'[]');
+  const r=rutas.find(x=>x.id===id);if(!r)return;
+  const nombre=r.nombre||r.label||'Ruta';
+  // Mostrar opciones: renombrar o abrir para editar paradas
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;';
+  overlay.innerHTML=`<div style="background:var(--surface);width:100%;border-radius:20px 20px 0 0;padding:20px 18px calc(24px + var(--safe-bot));">
+    <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Editar ruta</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${nombre}</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button id="_er_rename" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:15px 16px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;">✏️ Renombrar ruta</button>
+      <button id="_er_open" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:15px 16px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;">🗺️ Abrir y editar paradas</button>
+      <button id="_er_close" style="background:none;border:none;color:var(--text-muted);font-size:13px;padding:8px;cursor:pointer;">Cancelar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#_er_close').onclick=()=>overlay.remove();
+  overlay.querySelector('#_er_rename').onclick=()=>{
+    overlay.remove();
+    const nuevo=prompt('Nuevo nombre:',nombre);
+    if(!nuevo||nuevo===nombre)return;
+    const idx=rutas.findIndex(x=>x.id===id);if(idx<0)return;
+    rutas[idx].nombre=nuevo;
+    localStorage.setItem('rius_rutas',JSON.stringify(rutas));
+    renderRutas();
+  };
+  overlay.querySelector('#_er_open').onclick=()=>{
+    overlay.remove();
+    // Cargar la ruta en el modal para editar paradas
+    rutaParadas=r.paradas.map(p=>({...p}));
+    rutaOrigen=r.origen||null;rutaDestino=r.destino||null;
+    rutasDia=[{fecha:_hoyStr(),label:nombre,paradas:[...rutaParadas],origen:rutaOrigen,destino:rutaDestino}];
+    rutaDiaIdx=0;_actualizarDiaNave();
+    const distTotal=rutaParadas.filter(p=>p.coords).reduce((s,p)=>s+(p.distancia||0),0);
+    const sinD=rutaParadas.filter(p=>!p.coords).length;
+    document.getElementById('ruta-subtitulo').textContent=`${rutaParadas.length} parada${rutaParadas.length!==1?'s':''} · ${distTotal.toFixed(1)} km${sinD?' · '+sinD+' sin dirección':''}`;
+    document.getElementById('modal-ruta').style.display='flex';
+    renderRutaLista(rutaParadas,rutaOrigen,rutaDestino);
+  };
 }
 
 function repetirRuta(id){

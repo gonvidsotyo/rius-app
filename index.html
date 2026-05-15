@@ -1579,7 +1579,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.23.1</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.23.2</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2297,7 +2297,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.23.1</div>
+      <div class="login-version">v1.23.2</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2312,7 +2312,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.23.1</div>
+      <div class="login-version">v1.23.2</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -3824,12 +3824,15 @@ async function armarRuta(){
 function cerrarRuta(){document.getElementById('modal-ruta').style.display='none';}
 
 async function reGeocodificarRuta(){
-  if(!confirm('Se borrarán las ubicaciones guardadas de todos los clientes de esta ruta y se volverán a buscar desde sus direcciones actuales. ¿Continuar?'))return;
+  if(!confirm('Se volverán a geocodificar las direcciones de la ruta (se conservan las ubicaciones corregidas manualmente). ¿Continuar?'))return;
   const prog=t=>{document.getElementById('ruta-lista').innerHTML=`<div style="text-align:center;padding:40px 16px;color:var(--text-muted);font-size:14px;"><div style="font-size:28px;margin-bottom:10px;">🔄</div><div id="ruta-progreso">${t}</div></div>`;};
-  // Borrar coords guardadas de todos los clientes de la ruta
-  rutaParadas.forEach(p=>{delete p.coords;delete p.distancia;delete p.coordsGuardadas;limpiarCoordsCliente(p.cliente);});
-  // Re-geocodificar con rate limit Nominatim
-  const conDir=rutaParadas.filter(p=>p.dir||p.loc);
+  // Re-geocodificar solo los que NO tienen coords guardadas manualmente
+  const sinCoordGuardada=rutaParadas.filter(p=>{
+    const guardado=CLIENTES_COORDS[p.cliente];
+    if(guardado){p.coords={lat:guardado.lat,lng:guardado.lng};return false;}
+    return true;
+  });
+  const conDir=sinCoordGuardada.filter(p=>p.dir||p.loc);
   for(let i=0;i<conDir.length;i++){
     prog(`Geocodificando ${i+1} de ${conDir.length}...`);
     conDir[i].coords=await geocodificarDir(conDir[i].dir,conDir[i].loc);

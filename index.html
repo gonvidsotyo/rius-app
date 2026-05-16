@@ -1586,7 +1586,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.27.2</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.27.3</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2375,7 +2375,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.27.2</div>
+      <div class="login-version">v1.27.3</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2390,7 +2390,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.27.2</div>
+      <div class="login-version">v1.27.3</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -4155,8 +4155,9 @@ function _finalizarRutaEnProgreso(){
 function _setupDraggableBubble(){
   const bubble=document.getElementById('ruta-bubble');
   const icon=document.getElementById('ruta-bubble-icon');
-  if(!bubble||!icon)return;
-  let dragging=false,hasMoved=false,longTimer=null;
+  if(!bubble||!icon||icon._dragSetup)return;
+  icon._dragSetup=true;
+  let dragging=false,hasMoved=false,longFired=false,longTimer=null;
   let startX=0,startY=0,origLeft=0,origTop=0;
   const LONG_MS=600,MOVE_THR=8;
 
@@ -4164,8 +4165,10 @@ function _setupDraggableBubble(){
     const t=e.touches[0];
     startX=t.clientX;startY=t.clientY;
     origLeft=bubble.offsetLeft;origTop=bubble.offsetTop;
-    hasMoved=false;dragging=false;
-    longTimer=setTimeout(()=>{if(!hasMoved)_mostrarOpcionesBubble();},LONG_MS);
+    hasMoved=false;dragging=false;longFired=false;
+    longTimer=setTimeout(()=>{
+      if(!hasMoved){longFired=true;_mostrarOpcionesBubble();}
+    },LONG_MS);
   },{passive:true});
 
   icon.addEventListener('touchmove',e=>{
@@ -4185,8 +4188,9 @@ function _setupDraggableBubble(){
 
   icon.addEventListener('touchend',()=>{
     clearTimeout(longTimer);
-    if(!hasMoved)toggleRutaBubble();
-    dragging=false;
+    // Solo abrir panel si fue toque corto sin long press ni arrastre
+    if(!hasMoved&&!longFired)toggleRutaBubble();
+    dragging=false;longFired=false;
   },{passive:true});
 }
 

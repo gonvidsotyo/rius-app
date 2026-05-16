@@ -1590,7 +1590,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.27.9</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.28.0</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2259,8 +2259,9 @@ select {
       <div id="ruta-bubble-prod" style="font-size:13px;color:var(--text-muted);margin-top:2px;"></div>
       <div id="ruta-bubble-dir" style="font-size:12px;color:var(--text-muted);margin-top:2px;"></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr auto auto;border-top:1px solid var(--border-soft);">
+    <div style="display:grid;grid-template-columns:1fr auto auto auto;border-top:1px solid var(--border-soft);">
       <button onclick="_confirmarEntregaParada()" style="padding:13px 10px;background:#f0faf0;color:#1a7a2a;border:none;border-right:1px solid var(--border-soft);font-size:13px;font-weight:700;cursor:pointer;">✓ Entregar</button>
+      <button onclick="_abrirEditarRutaProgreso()" title="Editar paradas" style="padding:13px 14px;background:var(--surface-2);color:var(--text);border:none;border-right:1px solid var(--border-soft);font-size:16px;cursor:pointer;">✏️</button>
       <button onclick="_retomarNavegacion()" title="Retomar navegación" style="padding:13px 14px;background:var(--surface-2);color:var(--text);border:none;border-right:1px solid var(--border-soft);font-size:18px;cursor:pointer;">🗺️</button>
       <button onclick="_saltarParada()" title="No se pudo entregar" style="padding:13px 14px;background:#fff5f5;color:#B42318;border:none;font-size:18px;cursor:pointer;">✕</button>
     </div>
@@ -2269,6 +2270,20 @@ select {
   <div id="ruta-bubble-icon" style="width:58px;height:58px;border-radius:50%;background:var(--brand-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-direction:column;user-select:none;">
     <span style="font-size:26px;line-height:1;">💧</span>
     <div id="ruta-bubble-badge" style="position:absolute;top:-2px;right:-2px;background:#ff3b30;color:#fff;border-radius:50%;min-width:20px;height:20px;padding:0 4px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--surface);"></div>
+  </div>
+</div>
+
+<!-- ================= MODAL EDITAR RUTA EN PROGRESO ================= -->
+<div id="modal-editar-ruta-progreso" style="display:none;position:fixed;inset:0;z-index:6000;background:var(--overlay);align-items:flex-end;" onclick="if(event.target===this)_cerrarEditarRutaProgreso()">
+  <div style="width:100%;max-width:480px;margin:0 auto;background:var(--surface);border-radius:20px 20px 0 0;max-height:85vh;display:flex;flex-direction:column;">
+    <div style="padding:16px 18px 12px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div style="font-size:16px;font-weight:700;color:var(--text);">Editar paradas</div>
+      <button onclick="_cerrarEditarRutaProgreso()" style="background:none;border:none;font-size:22px;color:var(--text-muted);padding:0;">✕</button>
+    </div>
+    <div id="editar-ruta-lista" style="overflow-y:auto;flex:1;padding:0 16px;"></div>
+    <div style="padding:12px 16px calc(12px + var(--safe-bot));border-top:1px solid var(--border-soft);flex-shrink:0;">
+      <button onclick="_mostrarPedidosParaAgregarEnRuta()" style="width:100%;padding:13px;background:var(--brand-primary);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;">+ Agregar pedido</button>
+    </div>
   </div>
 </div>
 
@@ -2386,7 +2401,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.27.9</div>
+      <div class="login-version">v1.28.0</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2401,7 +2416,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.27.9</div>
+      <div class="login-version">v1.28.0</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -4086,8 +4101,7 @@ function accionIniciarOContinuarRuta(){
 function _guardarRutaEnProgreso(){
   if(!rutaEnProgreso)return;
   try{
-    // Guardar versión reducida para evitar superar cuota de localStorage
-    const slim={indice:rutaEnProgreso.indice,paradas:rutaEnProgreso.paradas.map(p=>({
+    const slim={nombre:rutaEnProgreso.nombre||'',usuario:rutaEnProgreso.usuario||'',indice:rutaEnProgreso.indice,paradas:rutaEnProgreso.paradas.map(p=>({
       cliente:p.cliente,dir:p.dir,loc:p.loc,dirCompleta:p.dirCompleta,
       prodNombre:p.prodNombre,prodKey:p.prodKey,cant:p.cant,nota:p.nota,
       coords:p.coords,id:p.id,entregada:p.entregada||false,noEntregada:p.noEntregada||false
@@ -4144,7 +4158,9 @@ function _actualizarBubble(){
   const total=rutaEnProgreso.paradas.length;
   const badge=document.getElementById('ruta-bubble-badge');if(badge)badge.textContent=idx+1;
   const nom=document.getElementById('ruta-bubble-nombre');if(nom)nom.textContent=rutaEnProgreso.nombre||'Ruta en progreso';
-  const usr=document.getElementById('ruta-bubble-usuario');if(usr)usr.textContent=rutaEnProgreso.usuario?`👤 ${rutaEnProgreso.usuario}`:'';
+  const usuarioMostrar=rutaEnProgreso.usuario||usuarioActual||'';
+  const usr=document.getElementById('ruta-bubble-usuario');if(usr)usr.textContent=usuarioMostrar?`👤 ${usuarioMostrar}`:'';
+  if(rutaEnProgreso&&!rutaEnProgreso.usuario&&usuarioActual){rutaEnProgreso.usuario=usuarioActual;}
   const num=document.getElementById('ruta-bubble-num');if(num)num.textContent=`Parada ${idx+1} de ${total}`;
   const cli=document.getElementById('ruta-bubble-cliente');if(cli)cli.textContent=p.cliente||'';
   const prod=document.getElementById('ruta-bubble-prod');if(prod)prod.textContent=p.prodNombre?`${p.prodNombre} ×${p.cant||1}`:'';
@@ -4158,6 +4174,74 @@ function _editarNombreRuta(){
   rutaEnProgreso.nombre=t;
   _guardarRutaEnProgreso();
   _actualizarBubble();
+}
+function _abrirEditarRutaProgreso(){
+  if(!rutaEnProgreso)return;
+  document.getElementById('modal-editar-ruta-progreso').style.display='flex';
+  _renderEditarRutaProgreso();
+}
+function _cerrarEditarRutaProgreso(){
+  document.getElementById('modal-editar-ruta-progreso').style.display='none';
+}
+function _renderEditarRutaProgreso(){
+  const lista=document.getElementById('editar-ruta-lista');if(!lista)return;
+  const paradas=rutaEnProgreso.paradas;
+  if(!paradas.length){lista.innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted);">Sin paradas</div>';return;}
+  lista.innerHTML=paradas.map((p,i)=>{
+    const esCurrent=i===rutaEnProgreso.indice;
+    const label=p.entregada?'✓ Entregada':p.noEntregada?'✕ No entregada':esCurrent?'▶ En curso':'Pendiente';
+    const labelColor=p.entregada?'#3B6D11':p.noEntregada?'#B42318':esCurrent?'var(--brand-primary)':'var(--text-muted)';
+    const canRemove=!p.entregada;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-soft);">
+      <div style="font-size:11px;font-weight:700;color:${labelColor};flex-shrink:0;min-width:64px;">${label}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.cliente||''}</div>
+        <div style="font-size:12px;color:var(--text-muted);">${p.prodNombre||''}${p.cant>1?' ×'+p.cant:''}</div>
+      </div>
+      ${canRemove?`<button onclick="_quitarParadaProgreso(${i})" style="flex-shrink:0;background:none;border:1.5px solid var(--border-soft);border-radius:8px;color:var(--brand-red,#c43025);font-size:13px;font-weight:600;padding:6px 10px;cursor:pointer;">Quitar</button>`:''}
+    </div>`;
+  }).join('');
+}
+function _quitarParadaProgreso(i){
+  if(!rutaEnProgreso)return;
+  const p=rutaEnProgreso.paradas[i];
+  if(p.entregada)return;
+  if(!confirm(`¿Quitar a "${p.cliente}" de la ruta?`))return;
+  rutaEnProgreso.paradas.splice(i,1);
+  if(rutaEnProgreso.indice>i)rutaEnProgreso.indice--;
+  if(rutaEnProgreso.indice>=rutaEnProgreso.paradas.length)rutaEnProgreso.indice=Math.max(0,rutaEnProgreso.paradas.length-1);
+  _guardarRutaEnProgreso();_actualizarBubble();_renderEditarRutaProgreso();
+}
+function _mostrarPedidosParaAgregarEnRuta(){
+  const lista=document.getElementById('editar-ruta-lista');if(!lista)return;
+  const yaEnRuta=new Set(rutaEnProgreso.paradas.map(p=>p.cliente));
+  const disponibles=pedidos.filter(p=>!yaEnRuta.has(p.cliente));
+  if(!disponibles.length){
+    lista.innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted);">No hay pedidos disponibles para agregar</div><div style="padding:0 0 16px;text-align:center;"><button onclick="_renderEditarRutaProgreso()" style="background:none;border:none;color:var(--brand-primary);font-size:14px;font-weight:600;cursor:pointer;">← Volver</button></div>';
+    return;
+  }
+  lista.innerHTML=`<div style="padding:12px 0 4px;display:flex;align-items:center;gap:8px;"><button onclick="_renderEditarRutaProgreso()" style="background:none;border:none;color:var(--brand-primary);font-size:14px;font-weight:600;cursor:pointer;">← Volver</button><span style="font-size:13px;color:var(--text-muted);">Seleccioná un pedido</span></div>`+
+  disponibles.map(p=>{
+    const cli=CLIENTES.find(c=>c.nombre===p.cliente);
+    const dir=[cli?.direccion,cli?.localidad].filter(Boolean).join(' · ');
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-soft);cursor:pointer;" onclick="_agregarPedidoEnRutaProgreso('${encodeURIComponent(p.cliente)}',${p.id})">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:600;color:var(--text);">${p.cliente}</div>
+        <div style="font-size:12px;color:var(--text-muted);">${p.prodNombre||''}${p.cant>1?' ×'+p.cant:''}${dir?' · '+dir:''}</div>
+      </div>
+      <div style="font-size:22px;color:var(--brand-primary);font-weight:700;flex-shrink:0;">+</div>
+    </div>`;
+  }).join('');
+}
+async function _agregarPedidoEnRutaProgreso(encCliente,pedidoId){
+  const nombre=decodeURIComponent(encCliente);
+  const p=pedidos.find(x=>x.id===pedidoId);if(!p)return;
+  const cli=CLIENTES.find(c=>c.nombre===nombre);
+  const dir=cli?.direccion||'';const loc=cli?.localidad||'';
+  const parada={cliente:nombre,dir,loc,dirCompleta:[dir,loc].filter(Boolean).join(', '),prodNombre:p.prodNombre,prodKey:p.prodKey||'',cant:p.cant,nota:p.nota||'',coords:CLIENTES_COORDS[nombre]||null,id:p.id,entregada:false,noEntregada:false};
+  if(!parada.coords&&parada.dir)parada.coords=await geocodificarDir(parada.dir,parada.loc);
+  rutaEnProgreso.paradas.push(parada);
+  _guardarRutaEnProgreso();_actualizarBubble();_renderEditarRutaProgreso();
 }
 
 function toggleRutaBubble(){

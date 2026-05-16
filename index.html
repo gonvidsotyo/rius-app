@@ -1586,7 +1586,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.27.4</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.27.5</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2255,7 +2255,7 @@ select {
     </div>
   </div>
   <!-- Botón circular -->
-  <div id="ruta-bubble-icon" onclick="toggleRutaBubble()" style="width:58px;height:58px;border-radius:50%;background:var(--brand-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-direction:column;user-select:none;">
+  <div id="ruta-bubble-icon" style="width:58px;height:58px;border-radius:50%;background:var(--brand-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-direction:column;user-select:none;">
     <span style="font-size:26px;line-height:1;">💧</span>
     <div id="ruta-bubble-badge" style="position:absolute;top:-2px;right:-2px;background:#ff3b30;color:#fff;border-radius:50%;min-width:20px;height:20px;padding:0 4px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--surface);"></div>
   </div>
@@ -2375,7 +2375,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.27.4</div>
+      <div class="login-version">v1.27.5</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2390,7 +2390,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.27.4</div>
+      <div class="login-version">v1.27.5</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -4045,12 +4045,25 @@ async function armarRuta(){
 function cerrarRuta(){document.getElementById('modal-ruta').style.display='none';}
 
 // ---- RUTA EN PROGRESO ----
+function _guardarRutaEnProgreso(){
+  if(!rutaEnProgreso)return;
+  try{
+    // Guardar versión reducida para evitar superar cuota de localStorage
+    const slim={indice:rutaEnProgreso.indice,paradas:rutaEnProgreso.paradas.map(p=>({
+      cliente:p.cliente,dir:p.dir,loc:p.loc,dirCompleta:p.dirCompleta,
+      prodNombre:p.prodNombre,prodKey:p.prodKey,cant:p.cant,nota:p.nota,
+      coords:p.coords,id:p.id,entregada:p.entregada||false,noEntregada:p.noEntregada||false
+    }))};
+    localStorage.setItem('rutaEnProgreso',JSON.stringify(slim));
+  }catch(e){console.warn('No se pudo guardar rutaEnProgreso:',e);}
+}
+
 function iniciarRuta(){
   if(!rutaParadas.length){alert('No hay paradas en la ruta.');return;}
   const conCoords=rutaParadas.filter(p=>p.coords&&p.coords.lat!==undefined);
   if(!conCoords.length){alert('Ninguna parada tiene coordenadas. Usá Re-geo primero.');return;}
   rutaEnProgreso={paradas:rutaParadas.map(p=>({...p,entregada:false,noEntregada:false})),indice:0};
-  try{localStorage.setItem('rutaEnProgreso',JSON.stringify(rutaEnProgreso));}catch(e){}
+  _guardarRutaEnProgreso();
   cerrarRuta();
   _mostrarBubble();
   _irAMapsParada(0);
@@ -4121,19 +4134,27 @@ function _confirmarEntregaParada(){
 function _saltarParada(){
   if(!rutaEnProgreso)return;
   rutaEnProgreso.paradas[rutaEnProgreso.indice].noEntregada=true;
+  rutaEnProgreso.paradas[rutaEnProgreso.indice].entregada=false;
   document.getElementById('ruta-bubble-panel').style.display='none';
-  _avanzarParada();
+  _avanzarDesdeIdx(rutaEnProgreso.indice);
 }
 
 function _avanzarParada(){
   if(!rutaEnProgreso)return;
-  rutaEnProgreso.paradas[rutaEnProgreso.indice].entregada=true;
+  // Marcar como entregada solo si no fue marcada como no-entregada
+  if(!rutaEnProgreso.paradas[rutaEnProgreso.indice].noEntregada){
+    rutaEnProgreso.paradas[rutaEnProgreso.indice].entregada=true;
+  }
+  _avanzarDesdeIdx(rutaEnProgreso.indice);
+}
+
+function _avanzarDesdeIdx(currentIdx){
   // Buscar siguiente parada sin estado
-  let next=rutaEnProgreso.indice+1;
+  let next=currentIdx+1;
   while(next<rutaEnProgreso.paradas.length&&(rutaEnProgreso.paradas[next].entregada||rutaEnProgreso.paradas[next].noEntregada))next++;
   if(next>=rutaEnProgreso.paradas.length){_finalizarRutaEnProgreso();return;}
   rutaEnProgreso.indice=next;
-  try{localStorage.setItem('rutaEnProgreso',JSON.stringify(rutaEnProgreso));}catch(e){}
+  _guardarRutaEnProgreso();
   _actualizarBubble();
   _irAMapsParada(next);
 }
@@ -4222,6 +4243,7 @@ function _mostrarOpcionesBubble(){
   bind('#_ob_end',()=>{ov.remove();_finalizarRutaEnProgreso();});
   bind('#_ob_pause',()=>{
     ov.remove();
+    _guardarRutaEnProgreso(); // Asegurar que el estado esté guardado antes de ocultar
     document.getElementById('ruta-bubble').style.display='none';
     document.getElementById('ruta-bubble-panel').style.display='none';
     const t=document.createElement('div');

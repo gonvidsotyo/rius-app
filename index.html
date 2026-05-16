@@ -1586,7 +1586,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.27.3</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.27.4</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2375,7 +2375,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.27.3</div>
+      <div class="login-version">v1.27.4</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2390,7 +2390,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.27.3</div>
+      <div class="login-version">v1.27.4</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -4200,29 +4200,35 @@ function _mostrarOpcionesBubble(){
   const noEntregadas=rutaEnProgreso.paradas.filter(p=>p.noEntregada).length;
   const pendientes=rutaEnProgreso.paradas.length-entregadas-noEntregadas;
   const ov=document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;z-index:6000;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;';
+  ov.style.cssText='position:fixed;inset:0;z-index:6000;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;touch-action:manipulation;';
   ov.innerHTML=`<div style="background:var(--surface);width:100%;border-radius:20px 20px 0 0;padding:20px 18px calc(24px + var(--safe-bot));">
     <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Ruta en progreso</div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">✅ ${entregadas} entregadas · ⏳ ${pendientes} pendientes${noEntregadas?` · ❌ ${noEntregadas} sin entregar`:''}</div>
     <div style="display:flex;flex-direction:column;gap:10px;">
-      <button id="_ob_pause" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:15px 16px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;">⏸️ Guardar y salir (continuar después)</button>
-      <button id="_ob_end" style="background:#FDECEA;border:1.5px solid #f5c6c6;border-radius:12px;padding:15px 16px;font-size:14px;font-weight:600;color:#B42318;text-align:left;cursor:pointer;">🏁 Finalizar ruta</button>
-      <button id="_ob_cancel" style="background:none;border:none;color:var(--text-muted);font-size:13px;padding:8px;cursor:pointer;">Cancelar</button>
+      <button id="_ob_pause" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:15px 16px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;touch-action:manipulation;">⏸️ Guardar y salir (continuar después)</button>
+      <button id="_ob_end" style="background:#FDECEA;border:1.5px solid #f5c6c6;border-radius:12px;padding:15px 16px;font-size:14px;font-weight:600;color:#B42318;text-align:left;cursor:pointer;touch-action:manipulation;">🏁 Finalizar ruta</button>
+      <button id="_ob_cancel" style="background:none;border:none;color:var(--text-muted);font-size:13px;padding:8px;cursor:pointer;touch-action:manipulation;">Cancelar</button>
     </div>
   </div>`;
   document.body.appendChild(ov);
-  ov.querySelector('#_ob_cancel').onclick=()=>ov.remove();
-  ov.querySelector('#_ob_end').onclick=()=>{ov.remove();_finalizarRutaEnProgreso();};
-  ov.querySelector('#_ob_pause').onclick=()=>{
+  // Bloquear ghost clicks del long press sobre el overlay
+  ov.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
+  // Usar touchend en lugar de onclick para evitar el delay de 300ms en mobile
+  const bind=(id,fn)=>{
+    const btn=ov.querySelector(id);
+    btn.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();fn();},{passive:false});
+  };
+  bind('#_ob_cancel',()=>ov.remove());
+  bind('#_ob_end',()=>{ov.remove();_finalizarRutaEnProgreso();});
+  bind('#_ob_pause',()=>{
     ov.remove();
-    // Solo ocultar bubble, el estado queda en localStorage
     document.getElementById('ruta-bubble').style.display='none';
     document.getElementById('ruta-bubble-panel').style.display='none';
     const t=document.createElement('div');
     t.textContent='⏸️ Ruta guardada · podés continuarla más tarde';
     t.style.cssText='position:fixed;bottom:calc(90px + var(--safe-bot));left:50%;transform:translateX(-50%);background:#1c1c1e;color:#fff;padding:12px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:9999;white-space:nowrap;';
     document.body.appendChild(t);setTimeout(()=>t.remove(),3500);
-  };
+  });
 }
 
 // Restaurar ruta en progreso si estaba activa al recargar

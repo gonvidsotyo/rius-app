@@ -1586,7 +1586,7 @@ select {
     <div class="topbar-brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div class="brand-text">
-        <div class="brand-title">Rius<span class="version-tag">v1.27.1</span></div>
+        <div class="brand-title">Rius<span class="version-tag">v1.27.2</span></div>
         <div class="brand-sub" id="topbar-fecha"></div>
       </div>
     </div>
@@ -2375,7 +2375,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.27.1</div>
+      <div class="login-version">v1.27.2</div>
       <div class="login-sub">Pegá la URL del script de Google<br>para sincronizar tus datos.</div>
     </div>
     <div class="login-field"><label>URL del script de Google</label><input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px !important;" /></div>
@@ -2390,7 +2390,7 @@ select {
     <div class="login-hero">
       <div class="login-logo-img"></div>
       <div class="login-brand">Rius</div>
-      <div class="login-version">v1.27.1</div>
+      <div class="login-version">v1.27.2</div>
       <div class="login-sub">Iniciá sesión para continuar</div>
     </div>
     <div class="login-user-sel" id="login-user-sel"></div>
@@ -4069,7 +4069,7 @@ function _irAMapsParada(idx){
 
 function _mostrarBubble(){
   const el=document.getElementById('ruta-bubble');if(el)el.style.display='block';
-  _actualizarBubble();
+  _actualizarBubble();_setupDraggableBubble();
 }
 
 function _actualizarBubble(){
@@ -4099,22 +4099,21 @@ function _confirmarEntregaParada(){
   const p=rutaEnProgreso.paradas[idx];
   rutaParadaEntregando=idx;
   document.getElementById('ruta-bubble-panel').style.display='none';
+  // Vincular con pedido pendiente para que se elimine al confirmar la venta
+  if(p.id){pedidoEnEntrega=p.id;}
+  else{const ped=pedidos.find(x=>x.cliente===p.cliente);if(ped)pedidoEnEntrega=ped.id;}
   // Ir a pantalla venta y precargar datos
   showScreen('venta');
-  // Seleccionar cliente
   if(p.cliente){selCli(p.cliente);}
-  // Precargar producto si tenemos prodKey
   const pk=p.prodKey||null;
   if(pk){
     const ps=document.getElementById('prod-sel');
     if(ps){ps.value=pk;calcTotal();actualizarDev();toggleBidDisp();togglePagoDirecto();actualizarBannerAbono();}
   }
-  // Precargar cantidad
   const cantVal=p.cant||1;
   const cantEl=document.getElementById('cant');const cantDisp=document.getElementById('cant-display');
   if(cantEl){cantEl.value=cantVal;}if(cantDisp){cantDisp.textContent=cantVal;}
   calcTotal();actualizarDev();
-  // Banner contextual
   const res=document.getElementById('bidones-resumen');
   if(res){res.textContent=`📍 Parada ${idx+1} · ${p.cliente}${p.nota?' · '+p.nota:''}`;res.classList.add('visible');}
 }
@@ -4152,12 +4151,83 @@ function _finalizarRutaEnProgreso(){
   showScreen('inicio');
 }
 
+// ---- BUBBLE DRAGGABLE + LONG PRESS ----
+function _setupDraggableBubble(){
+  const bubble=document.getElementById('ruta-bubble');
+  const icon=document.getElementById('ruta-bubble-icon');
+  if(!bubble||!icon)return;
+  let dragging=false,hasMoved=false,longTimer=null;
+  let startX=0,startY=0,origLeft=0,origTop=0;
+  const LONG_MS=600,MOVE_THR=8;
+
+  icon.addEventListener('touchstart',e=>{
+    const t=e.touches[0];
+    startX=t.clientX;startY=t.clientY;
+    origLeft=bubble.offsetLeft;origTop=bubble.offsetTop;
+    hasMoved=false;dragging=false;
+    longTimer=setTimeout(()=>{if(!hasMoved)_mostrarOpcionesBubble();},LONG_MS);
+  },{passive:true});
+
+  icon.addEventListener('touchmove',e=>{
+    const t=e.touches[0];
+    const dx=t.clientX-startX,dy=t.clientY-startY;
+    if(Math.abs(dx)>MOVE_THR||Math.abs(dy)>MOVE_THR){
+      hasMoved=true;dragging=true;clearTimeout(longTimer);
+    }
+    if(dragging){
+      e.preventDefault();
+      const nl=Math.max(0,Math.min(window.innerWidth-62,origLeft+dx));
+      const nt=Math.max(0,Math.min(window.innerHeight-62,origTop+dy));
+      bubble.style.left=nl+'px';bubble.style.top=nt+'px';
+      bubble.style.right='auto';bubble.style.bottom='auto';
+    }
+  },{passive:false});
+
+  icon.addEventListener('touchend',()=>{
+    clearTimeout(longTimer);
+    if(!hasMoved)toggleRutaBubble();
+    dragging=false;
+  },{passive:true});
+}
+
+function _mostrarOpcionesBubble(){
+  if(!rutaEnProgreso)return;
+  const entregadas=rutaEnProgreso.paradas.filter(p=>p.entregada).length;
+  const noEntregadas=rutaEnProgreso.paradas.filter(p=>p.noEntregada).length;
+  const pendientes=rutaEnProgreso.paradas.length-entregadas-noEntregadas;
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:6000;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;';
+  ov.innerHTML=`<div style="background:var(--surface);width:100%;border-radius:20px 20px 0 0;padding:20px 18px calc(24px + var(--safe-bot));">
+    <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Ruta en progreso</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">✅ ${entregadas} entregadas · ⏳ ${pendientes} pendientes${noEntregadas?` · ❌ ${noEntregadas} sin entregar`:''}</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button id="_ob_pause" style="background:var(--surface-2);border:1.5px solid var(--border-soft);border-radius:12px;padding:15px 16px;font-size:14px;font-weight:600;color:var(--text);text-align:left;cursor:pointer;">⏸️ Guardar y salir (continuar después)</button>
+      <button id="_ob_end" style="background:#FDECEA;border:1.5px solid #f5c6c6;border-radius:12px;padding:15px 16px;font-size:14px;font-weight:600;color:#B42318;text-align:left;cursor:pointer;">🏁 Finalizar ruta</button>
+      <button id="_ob_cancel" style="background:none;border:none;color:var(--text-muted);font-size:13px;padding:8px;cursor:pointer;">Cancelar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#_ob_cancel').onclick=()=>ov.remove();
+  ov.querySelector('#_ob_end').onclick=()=>{ov.remove();_finalizarRutaEnProgreso();};
+  ov.querySelector('#_ob_pause').onclick=()=>{
+    ov.remove();
+    // Solo ocultar bubble, el estado queda en localStorage
+    document.getElementById('ruta-bubble').style.display='none';
+    document.getElementById('ruta-bubble-panel').style.display='none';
+    const t=document.createElement('div');
+    t.textContent='⏸️ Ruta guardada · podés continuarla más tarde';
+    t.style.cssText='position:fixed;bottom:calc(90px + var(--safe-bot));left:50%;transform:translateX(-50%);background:#1c1c1e;color:#fff;padding:12px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:9999;white-space:nowrap;';
+    document.body.appendChild(t);setTimeout(()=>t.remove(),3500);
+  };
+}
+
 // Restaurar ruta en progreso si estaba activa al recargar
 (function(){
   try{
     const saved=localStorage.getItem('rutaEnProgreso');
-    if(saved){rutaEnProgreso=JSON.parse(saved);setTimeout(_mostrarBubble,800);}
-  }catch(e){}
+    if(saved){rutaEnProgreso=JSON.parse(saved);setTimeout(()=>{_mostrarBubble();_setupDraggableBubble();},800);}
+    else{setTimeout(_setupDraggableBubble,800);}
+  }catch(e){setTimeout(_setupDraggableBubble,800);}
 })();
 
 function _autoGuardarRuta(nombre,paradas,origen,destino,fechaRuta){
@@ -4539,7 +4609,7 @@ function renderRutas(){
       <div style="font-size:15px;font-weight:700;color:var(--text);">${nombre}</div>
       <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">${ds} · ${r.paradas.length} parada${r.paradas.length!==1?'s':''} · ${(r.distTotal||0).toFixed(1)} km</div>
       <div style="display:flex;gap:8px;margin-top:12px;">
-        <button onclick="repetirRuta(${r.id})" style="flex:1;background:var(--brand-primary);color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;">🔁 Repetir</button>
+        <button onclick="repetirRuta(${r.id})" style="flex:1;background:var(--brand-primary);color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;">👁️ Ver</button>
         <button onclick="editarRutaGuardada(${r.id})" style="background:var(--surface);color:var(--text);border:1.5px solid var(--border-soft);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;">✏️ Editar</button>
         <button onclick="eliminarRutaGuardada(${r.id})" style="background:var(--surface);color:var(--brand-red);border:1.5px solid var(--border-soft);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;">🗑️</button>
       </div>

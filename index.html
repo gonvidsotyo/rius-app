@@ -4113,8 +4113,15 @@ function _irAMapsParada(idx){
   if(p.coords&&p.coords.lat!==undefined){dest=`${p.coords.lat},${p.coords.lng}`;}
   else if(p.dirCompleta){dest=encodeURIComponent(p.dirCompleta);}
   else return;
-  // dir_action=navigate inicia la navegación turn-by-turn directamente
-  window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving&dir_action=navigate`,'_blank');
+  const openMaps=ori=>{
+    const originParam=ori?`&origin=${ori}`:'';
+    window.open(`https://www.google.com/maps/dir/?api=1${originParam}&destination=${dest}&travelmode=driving&dir_action=navigate`,'_blank');
+  };
+  navigator.geolocation.getCurrentPosition(
+    pos=>openMaps(`${pos.coords.latitude},${pos.coords.longitude}`),
+    ()=>openMaps(''),
+    {enableHighAccuracy:true,maximumAge:10000,timeout:5000}
+  );
 }
 
 function _mostrarBubble(){
